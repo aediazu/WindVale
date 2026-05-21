@@ -35,9 +35,9 @@ export const ELEMENT_ICON = {
 };
 
 export const ELEMENT_COLOR = {
-  Fire:    '#e85d04',
-  Water:   '#0096c7',
-  Earth:   '#588157',
-  Air:     '#90e0ef',
-  Neutral: '#adb5bd',
+  Fire:    '#c44018',
+  Water:   '#186080',
+  Earth:   '#486030',
+  Air:     '#607898',
+  Neutral: '#686060',
 };
