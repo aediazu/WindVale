@@ -2,7 +2,7 @@ import { ELEMENTS } from '../data/elements.js';
 
 export class Character {
   constructor() {
-    this.name = 'Héroe';
+    this.name = 'Hero';
     this.element = ELEMENTS.NEUTRAL;
 
     this.maxHp = 100;
@@ -14,18 +14,18 @@ export class Character {
     this.baseDefense = 3;
     this.speed = 10;
 
-    this.weapon = { name: 'Espada de Hierro', attackBonus: 0, level: 0 };
-    this.armor  = { name: 'Armadura de Cuero', defenseBonus: 0, level: 0 };
+    this.weapon = { name: 'Iron Sword', attackBonus: 0, level: 0 };
+    this.armor  = { name: 'Leather Armor', defenseBonus: 0, level: 0 };
 
     this.items = [
-      { id: 'potion', name: 'Poción', quantity: 3, healHp: 30 },
+      { id: 'potion', name: 'Potion', quantity: 3, healHp: 30 },
     ];
 
     this.skills = [
-      { id: 'fire_strike',  name: 'Golpe de Fuego',  element: ELEMENTS.FIRE,  mpCost: 12, power: 1.6 },
-      { id: 'water_bolt',   name: 'Rayo de Agua',    element: ELEMENTS.WATER, mpCost: 12, power: 1.6 },
-      { id: 'earth_crush',  name: 'Aplaste de Tierra',element: ELEMENTS.EARTH, mpCost: 12, power: 1.6 },
-      { id: 'air_slash',    name: 'Corte de Aire',   element: ELEMENTS.AIR,   mpCost: 12, power: 1.6 },
+      { id: 'fire_strike',  name: 'Fire Strike',   element: ELEMENTS.FIRE,  mpCost: 12, power: 1.6 },
+      { id: 'water_bolt',   name: 'Water Bolt',    element: ELEMENTS.WATER, mpCost: 12, power: 1.6 },
+      { id: 'earth_crush',  name: 'Earth Crush',   element: ELEMENTS.EARTH, mpCost: 12, power: 1.6 },
+      { id: 'air_slash',    name: 'Air Slash',     element: ELEMENTS.AIR,   mpCost: 12, power: 1.6 },
     ];
   }
 

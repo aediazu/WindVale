@@ -115,15 +115,15 @@ const game = {
     if (ev.effect.goldBonus) {
       const gained = this.dungeon.addGold(ev.effect.goldBonus);
       this.gold += gained;
-      msg = `+${gained}⚜ de oro`;
+      msg = `+${gained}⚜ gold`;
     } else if (ev.effect.healPercent) {
       const healed = Math.floor(c.maxHp * ev.effect.healPercent);
       c.heal(healed);
-      msg = `+${healed} HP recuperado`;
+      msg = `+${healed} HP restored`;
     } else if (ev.effect.mpPercent) {
       const restored = Math.floor(c.maxMp * ev.effect.mpPercent);
       c.restoreMp(restored);
-      msg = `+${restored} MP restaurado`;
+      msg = `+${restored} MP restored`;
     } else if (ev.effect.damage) {
       const dmg = c.takeDamage(ev.effect.damage);
       msg = `-${dmg} HP`;

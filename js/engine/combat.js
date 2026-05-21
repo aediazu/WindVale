@@ -17,7 +17,7 @@ export class Combat {
     const variance = 0.9 + Math.random() * 0.2;
     const raw = Math.floor(this.character.attack * variance);
     const dmg = this.monster.takeDamage(raw);
-    this.addLog(`Atacas a ${this.monster.name} por ${dmg} de daño.`, 'player');
+    this.addLog(`You attack ${this.monster.name} for ${dmg} damage.`, 'player');
     this.subScreen = null;
     this.afterPlayerAction();
   }
@@ -25,7 +25,7 @@ export class Combat {
   useSkill(skill) {
     if (!this.isPlayerTurn()) return;
     if (!this.character.canUseSkill(skill)) {
-      this.addLog('No tienes suficiente MP.', 'warning');
+      this.addLog('Not enough MP.', 'warning');
       return;
     }
     this.character.spendMp(skill.mpCost);
@@ -33,7 +33,7 @@ export class Combat {
     const raw  = Math.floor(this.character.attack * skill.power * mult);
     const dmg  = this.monster.takeDamage(raw);
     const note = effectivenessText(mult);
-    this.addLog(`${skill.name} → ${dmg} daño${note ? ' — ' + note : ''}.`, 'player-skill');
+    this.addLog(`${skill.name} → ${dmg} damage${note ? ' — ' + note : ''}.`, 'player-skill');
     this.subScreen = null;
     this.afterPlayerAction();
   }
@@ -41,14 +41,14 @@ export class Combat {
   useItem(itemId) {
     if (!this.isPlayerTurn()) return;
     const item = this.character.consumeItem(itemId);
-    if (!item) { this.addLog('No puedes usar ese ítem.', 'warning'); return; }
+    if (!item) { this.addLog('Cannot use that item.', 'warning'); return; }
     if (item.healHp) {
       this.character.heal(item.healHp);
-      this.addLog(`Usas ${item.name} y recuperas ${item.healHp} HP.`, 'heal');
+      this.addLog(`You use ${item.name} and restore ${item.healHp} HP.`, 'heal');
     }
     if (item.healMp) {
       this.character.restoreMp(item.healMp);
-      this.addLog(`Usas ${item.name} y recuperas ${item.healMp} MP.`, 'heal');
+      this.addLog(`You use ${item.name} and restore ${item.healMp} MP.`, 'heal');
     }
     this.subScreen = null;
     this.afterPlayerAction();
@@ -58,9 +58,9 @@ export class Combat {
     if (!this.isPlayerTurn()) return;
     if (Math.random() < 0.55) {
       this.state = 'fled';
-      this.addLog('Huiste del combate.', 'info');
+      this.addLog('You fled from combat.', 'info');
     } else {
-      this.addLog('¡No pudiste huir!', 'warning');
+      this.addLog("Couldn't escape!", 'warning');
       this.subScreen = null;
       this.monsterTurn();
     }
@@ -74,7 +74,7 @@ export class Combat {
     } else {
       this.goldEarned = this.monster.goldDrop();
       this.state = 'won';
-      this.addLog(`¡Derrotaste a ${this.monster.name}! +${this.goldEarned} oro.`, 'victory');
+      this.addLog(`You defeated ${this.monster.name}! +${this.goldEarned} gold.`, 'victory');
     }
   }
 
@@ -88,15 +88,15 @@ export class Combat {
       const raw   = Math.floor(this.monster.attack * skill.power * mult);
       const dmg   = this.character.takeDamage(raw);
       const note  = effectivenessText(mult);
-      this.addLog(`${this.monster.name} usa ${skill.name} → ${dmg} daño${note ? ' — ' + note : ''}.`, 'monster');
+      this.addLog(`${this.monster.name} uses ${skill.name} → ${dmg} damage${note ? ' — ' + note : ''}.`, 'monster');
     } else {
       const dmg = this.character.takeDamage(this.monster.attack);
-      this.addLog(`${this.monster.name} te ataca por ${dmg} de daño.`, 'monster');
+      this.addLog(`${this.monster.name} attacks you for ${dmg} damage.`, 'monster');
     }
 
     if (!this.character.isAlive()) {
       this.state = 'lost';
-      this.addLog('Has caído en combate...', 'defeat');
+      this.addLog('You have fallen in battle...', 'defeat');
     }
   }
 

@@ -1,18 +1,18 @@
 export const ELEMENTS = {
-  FIRE:    'Fuego',
-  WATER:   'Agua',
-  EARTH:   'Tierra',
-  AIR:     'Aire',
+  FIRE:    'Fire',
+  WATER:   'Water',
+  EARTH:   'Earth',
+  AIR:     'Air',
   NEUTRAL: 'Neutral',
 };
 
 // Water beats Fire, Fire beats Air, Air beats Earth, Earth beats Water
 const CHART = {
-  Fuego:   { Fuego: 0.5, Agua: 0.75, Tierra: 1.0,  Aire: 1.5,  Neutral: 1.0 },
-  Agua:    { Fuego: 1.5, Agua: 0.5,  Tierra: 0.75, Aire: 1.0,  Neutral: 1.0 },
-  Tierra:  { Fuego: 1.0, Agua: 1.5,  Tierra: 0.5,  Aire: 0.75, Neutral: 1.0 },
-  Aire:    { Fuego: 0.75,Agua: 1.0,  Tierra: 1.5,  Aire: 0.5,  Neutral: 1.0 },
-  Neutral: { Fuego: 1.0, Agua: 1.0,  Tierra: 1.0,  Aire: 1.0,  Neutral: 1.0 },
+  Fire:    { Fire: 0.5, Water: 0.75, Earth: 1.0,  Air: 1.5,  Neutral: 1.0 },
+  Water:   { Fire: 1.5, Water: 0.5,  Earth: 0.75, Air: 1.0,  Neutral: 1.0 },
+  Earth:   { Fire: 1.0, Water: 1.5,  Earth: 0.5,  Air: 0.75, Neutral: 1.0 },
+  Air:     { Fire: 0.75,Water: 1.0,  Earth: 1.5,  Air: 0.5,  Neutral: 1.0 },
+  Neutral: { Fire: 1.0, Water: 1.0,  Earth: 1.0,  Air: 1.0,  Neutral: 1.0 },
 };
 
 export function getMultiplier(attackEl, defenseEl) {
@@ -20,24 +20,24 @@ export function getMultiplier(attackEl, defenseEl) {
 }
 
 export function effectivenessText(mult) {
-  if (mult >= 1.5) return '¡Muy efectivo!';
-  if (mult <= 0.5) return 'Resistido...';
-  if (mult < 1.0) return 'Poco efectivo...';
+  if (mult >= 1.5) return 'Super effective!';
+  if (mult <= 0.5) return 'Resisted...';
+  if (mult < 1.0) return 'Not very effective...';
   return '';
 }
 
 export const ELEMENT_ICON = {
-  Fuego:   '🔥',
-  Agua:    '💧',
-  Tierra:  '🌍',
-  Aire:    '💨',
+  Fire:    '🔥',
+  Water:   '💧',
+  Earth:   '🌍',
+  Air:     '💨',
   Neutral: '⚪',
 };
 
 export const ELEMENT_COLOR = {
-  Fuego:   '#e85d04',
-  Agua:    '#0096c7',
-  Tierra:  '#588157',
-  Aire:    '#90e0ef',
+  Fire:    '#e85d04',
+  Water:   '#0096c7',
+  Earth:   '#588157',
+  Air:     '#90e0ef',
   Neutral: '#adb5bd',
 };

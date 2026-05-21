@@ -3,9 +3,9 @@ import { Monster } from './monster.js';
 export const ADVENTURES = [
   {
     id: 'caves',
-    name: 'Cavernas de Ignis',
-    description: 'Cuevas volcánicas al sur. Monstruos de Fuego predominan.',
-    difficulty: 'Fácil',
+    name: 'Ignis Caverns',
+    description: 'Volcanic caves to the south. Fire monsters dominate.',
+    difficulty: 'Easy',
     rooms: 4,
     tiers: [1, 1, 1, 2],
     bossId: 'fire_dragon',
@@ -13,8 +13,8 @@ export const ADVENTURES = [
   },
   {
     id: 'lake',
-    name: 'Lago Abismal',
-    description: 'Un lago de aguas oscuras. Los pescadores no regresan.',
+    name: 'Abyssal Lake',
+    description: 'A lake of dark waters. Fishermen do not return.',
     difficulty: 'Normal',
     rooms: 4,
     tiers: [1, 2, 2, 2],
@@ -23,9 +23,9 @@ export const ADVENTURES = [
   },
   {
     id: 'ruins',
-    name: 'Ruinas del Viento',
-    description: 'Ruinas antiguas azotadas por vientos eternos. Muy peligroso.',
-    difficulty: 'Difícil',
+    name: 'Wind Ruins',
+    description: 'Ancient ruins lashed by eternal winds. Very dangerous.',
+    difficulty: 'Hard',
     rooms: 5,
     tiers: [2, 2, 3, 3, 3],
     bossId: 'storm_titan',
@@ -34,10 +34,10 @@ export const ADVENTURES = [
 ];
 
 const EVENTS = [
-  { id: 'treasure', name: 'Cofre del tesoro',  description: 'Encuentras un cofre abandonado.',  effect: { goldBonus: 25 } },
-  { id: 'fountain', name: 'Fuente mágica',      description: 'Una fuente restaura tus fuerzas.', effect: { healPercent: 0.35 } },
-  { id: 'trap',     name: 'Trampa',             description: '¡Caes en una trampa oculta!',      effect: { damage: 15 } },
-  { id: 'shrine',   name: 'Santuario elemental',description: 'Un santuario restaura tu maná.',   effect: { mpPercent: 0.5 } },
+  { id: 'treasure', name: 'Treasure Chest',   description: 'You find an abandoned chest.',         effect: { goldBonus: 25 } },
+  { id: 'fountain', name: 'Magic Fountain',    description: 'A fountain restores your strength.',   effect: { healPercent: 0.35 } },
+  { id: 'trap',     name: 'Trap',              description: 'You fall into a hidden trap!',          effect: { damage: 15 } },
+  { id: 'shrine',   name: 'Elemental Shrine',  description: 'A shrine restores your mana.',         effect: { mpPercent: 0.5 } },
 ];
 
 function randomEvent() {

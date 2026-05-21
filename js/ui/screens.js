@@ -37,7 +37,7 @@ function elBadge(element) {
 }
 
 function diffClass(d) {
-  if (d === 'Fácil') return 'difficulty-easy';
+  if (d === 'Easy') return 'difficulty-easy';
   if (d === 'Normal') return 'difficulty-normal';
   return 'difficulty-hard';
 }
@@ -46,7 +46,7 @@ function progressBar(done, total) {
   const pct = total > 0 ? (done / total) * 100 : 0;
   return `
     <div class="progress-bar">
-      <span class="progress-label">Sala ${done}/${total}</span>
+      <span class="progress-label">Room ${done}/${total}</span>
       <div class="progress-track">
         <div class="progress-fill" style="width:${pct}%"></div>
       </div>
@@ -81,22 +81,22 @@ export function renderHub(s) {
 
       <div class="hub-grid">
         <button class="hub-btn hub-btn-primary" onclick="game.navigate('adventure-select')">
-          ⚔ Aventura
+          ⚔ Adventure
         </button>
         <button class="hub-btn" onclick="game.navigate('shop')">
-          <span>🏪</span>Tienda
+          <span>🏪</span>Shop
         </button>
         <button class="hub-btn" onclick="game.navigate('inn')">
-          <span>🏠</span>Posada <small style="font-size:0.7rem;color:var(--muted)">(${innCost}⚜)</small>
+          <span>🏠</span>Inn <small style="font-size:0.7rem;color:var(--muted)">(${innCost}⚜)</small>
         </button>
         <button class="hub-btn" onclick="game.navigate('blacksmith')">
-          <span>⚒️</span>Herrería
+          <span>⚒️</span>Blacksmith
         </button>
         <button class="hub-btn" onclick="game.navigate('quests')">
-          <span>📜</span>Misiones
+          <span>📜</span>Quests
         </button>
         <button class="hub-btn" onclick="game.navigate('lore')">
-          <span>📖</span>Personajes
+          <span>📖</span>Characters
         </button>
       </div>
     </div>`;
@@ -108,8 +108,8 @@ export function renderAdventureSelect(s) {
       <div class="adventure-title">${adv.name}</div>
       <div class="adventure-meta">
         <span class="${diffClass(adv.difficulty)}">${adv.difficulty}</span>
-        <span>${adv.rooms + 1} salas</span>
-        <span>Oro ×${adv.goldMult.toFixed(1)}</span>
+        <span>${adv.rooms + 1} rooms</span>
+        <span>Gold ×${adv.goldMult.toFixed(1)}</span>
       </div>
       <div class="card-body">${adv.description}</div>
     </div>`).join('');
@@ -117,11 +117,11 @@ export function renderAdventureSelect(s) {
   return `
     <div class="screen">
       <div class="top-bar">
-        <button class="btn-back" onclick="game.navigate('hub')">← Volver</button>
+        <button class="btn-back" onclick="game.navigate('hub')">← Back</button>
         <span class="gold-badge">⚜ ${s.gold}</span>
       </div>
-      <div class="card"><div class="card-title">Elige una aventura</div>
-        <div class="card-body">Cada aventura es una serie de combates procedurales. El oro y la dificultad escalan con los runs.</div>
+      <div class="card"><div class="card-title">Choose an Adventure</div>
+        <div class="card-body">Each adventure is a series of procedural combats. Gold and difficulty scale with runs.</div>
       </div>
       ${cards}
     </div>`;
@@ -135,12 +135,12 @@ export function renderDungeon(s) {
 
   if (!room) {
     roomContent = `<div class="room-card"><div class="room-icon">🏆</div>
-      <div class="room-name">¡Aventura completada!</div></div>`;
+      <div class="room-name">Adventure complete!</div></div>`;
   } else if (room.type === 'event') {
     const ev = room.event;
-    const effectDesc = ev.effect.goldBonus  ? `+${ev.effect.goldBonus} oro`
-      : ev.effect.healPercent               ? `Restaura ${Math.round(ev.effect.healPercent*100)}% HP`
-      : ev.effect.mpPercent                 ? `Restaura ${Math.round(ev.effect.mpPercent*100)}% MP`
+    const effectDesc = ev.effect.goldBonus  ? `+${ev.effect.goldBonus} gold`
+      : ev.effect.healPercent               ? `Restores ${Math.round(ev.effect.healPercent*100)}% HP`
+      : ev.effect.mpPercent                 ? `Restores ${Math.round(ev.effect.mpPercent*100)}% MP`
       : ev.effect.damage                    ? `-${ev.effect.damage} HP`
       : '';
     roomContent = `
@@ -149,7 +149,7 @@ export function renderDungeon(s) {
         <div class="room-name">${ev.name}</div>
         <div class="room-desc">${ev.description}</div>
         <div style="font-size:0.85rem;color:var(--gold)">${effectDesc}</div>
-        <button class="btn-primary" style="max-width:200px" onclick="game.resolveEvent()">Continuar</button>
+        <button class="btn-primary" style="max-width:200px" onclick="game.resolveEvent()">Continue</button>
       </div>`;
   } else {
     const m = room.monster;
@@ -157,10 +157,10 @@ export function renderDungeon(s) {
     roomContent = `
       <div class="room-card" style="${isBoss ? 'border-color:var(--gold)' : ''}">
         <div class="room-icon">${isBoss ? '💀' : '⚔️'}</div>
-        <div class="room-name">${isBoss ? 'JEFE: ' : ''}${m.name}</div>
+        <div class="room-name">${isBoss ? 'BOSS: ' : ''}${m.name}</div>
         <div style="margin:4px 0">${elBadge(m.element)}</div>
         <div class="room-desc">${m.description}</div>
-        <button class="btn-primary" style="max-width:200px" onclick="game.enterCombat()">¡Luchar!</button>
+        <button class="btn-primary" style="max-width:200px" onclick="game.enterCombat()">Fight!</button>
       </div>`;
   }
 
@@ -176,7 +176,7 @@ export function renderDungeon(s) {
         ${mpBar(s.character.mp, s.character.maxMp)}
       </div>
       ${roomContent}
-      <button class="btn-secondary" onclick="game.fleeDungeon()">🏃 Abandonar aventura</button>
+      <button class="btn-secondary" onclick="game.fleeDungeon()">🏃 Abandon adventure</button>
     </div>`;
 }
 
@@ -191,7 +191,7 @@ export function renderCombat(s) {
 
   let actionArea = '';
   if (done) {
-    actionArea = `<div style="text-align:center;font-size:0.9rem;color:var(--muted)">Procesando...</div>`;
+    actionArea = `<div style="text-align:center;font-size:0.9rem;color:var(--muted)">Processing...</div>`;
   } else if (combat.subScreen === 'skills') {
     const skillBtns = c.skills.map(sk => `
       <button class="skill-btn" onclick="game.combatSkill('${sk.id}')"
@@ -201,11 +201,11 @@ export function renderCombat(s) {
       </button>`).join('');
     actionArea = `
       <div class="skill-list">${skillBtns}</div>
-      <button class="btn-back" onclick="game.combatSubScreen(null)">← Volver</button>`;
+      <button class="btn-back" onclick="game.combatSubScreen(null)">← Back</button>`;
   } else if (combat.subScreen === 'items') {
     if (c.items.length === 0) {
-      actionArea = `<div style="text-align:center;color:var(--muted);font-size:0.9rem">Sin ítems.</div>
-        <button class="btn-back" onclick="game.combatSubScreen(null)">← Volver</button>`;
+      actionArea = `<div style="text-align:center;color:var(--muted);font-size:0.9rem">No items.</div>
+        <button class="btn-back" onclick="game.combatSubScreen(null)">← Back</button>`;
     } else {
       const itemBtns = c.items.map(it => `
         <button class="item-btn" onclick="game.combatItem('${it.id}')">
@@ -214,15 +214,15 @@ export function renderCombat(s) {
         </button>`).join('');
       actionArea = `
         <div class="item-list">${itemBtns}</div>
-        <button class="btn-back" onclick="game.combatSubScreen(null)">← Volver</button>`;
+        <button class="btn-back" onclick="game.combatSubScreen(null)">← Back</button>`;
     }
   } else {
     actionArea = `
       <div class="action-grid">
-        <button class="action-btn" onclick="game.combatAttack()">⚔️ Atacar</button>
-        <button class="action-btn" onclick="game.combatSubScreen('skills')">✨ Habilidades</button>
-        <button class="action-btn" onclick="game.combatSubScreen('items')">🎒 Ítems</button>
-        <button class="action-btn" onclick="game.combatFlee()">🏃 Huir</button>
+        <button class="action-btn" onclick="game.combatAttack()">⚔️ Attack</button>
+        <button class="action-btn" onclick="game.combatSubScreen('skills')">✨ Skills</button>
+        <button class="action-btn" onclick="game.combatSubScreen('items')">🎒 Items</button>
+        <button class="action-btn" onclick="game.combatFlee()">🏃 Flee</button>
       </div>`;
   }
 
@@ -245,7 +245,7 @@ export function renderCombat(s) {
         ${mpBar(c.mp, c.maxMp)}
       </div>
 
-      <div class="combat-log">${logEntries || '<div class="log-entry log-info">¡Comienza el combate!</div>'}</div>
+      <div class="combat-log">${logEntries || '<div class="log-entry log-info">Combat begins!</div>'}</div>
 
       ${actionArea}
     </div>`;
@@ -267,11 +267,11 @@ export function renderShop(s) {
   return `
     <div class="screen">
       <div class="top-bar">
-        <button class="btn-back" onclick="game.navigate('hub')">← Volver</button>
-        <span style="color:var(--gold)">🏪 Tienda</span>
+        <button class="btn-back" onclick="game.navigate('hub')">← Back</button>
+        <span style="color:var(--gold)">🏪 Shop</span>
         <span class="gold-badge">⚜ ${s.gold}</span>
       </div>
-      <div class="card"><div class="card-body">Compra pociones y éters para tus aventuras.</div></div>
+      <div class="card"><div class="card-body">Buy potions and ethers for your adventures.</div></div>
       ${items}
     </div>`;
 }
@@ -284,25 +284,25 @@ export function renderInn(s) {
   return `
     <div class="screen">
       <div class="top-bar">
-        <button class="btn-back" onclick="game.navigate('hub')">← Volver</button>
-        <span style="color:var(--gold)">🏠 Posada</span>
+        <button class="btn-back" onclick="game.navigate('hub')">← Back</button>
+        <span style="color:var(--gold)">🏠 Inn</span>
         <span class="gold-badge">⚜ ${s.gold}</span>
       </div>
       <div class="card">
-        <div class="card-title">Posada del Viajero</div>
-        <div class="card-body">"Un buen descanso vale más que cualquier poción." — Rosalind</div>
+        <div class="card-title">Traveler's Inn</div>
+        <div class="card-body">"A good rest is worth more than any potion." — Rosalind</div>
       </div>
       <div class="stat-section">
         ${hpBar(c.hp, c.maxHp)}
         ${mpBar(c.mp, c.maxMp)}
       </div>
       ${full
-        ? `<div class="notification">Ya estás al máximo de HP y MP.</div>`
+        ? `<div class="notification">Already at full HP and MP.</div>`
         : `<button class="btn-primary" onclick="game.restAtInn()"
             ${s.gold < cost ? 'disabled' : ''}>
-            Descansar — ${cost}⚜ (Restaura todo HP/MP)
+            Rest — ${cost}⚜ (Restore all HP/MP)
           </button>
-          ${s.gold < cost ? '<div class="notification warn">Oro insuficiente.</div>' : ''}`}
+          ${s.gold < cost ? '<div class="notification warn">Not enough gold.</div>' : ''}`}
     </div>`;
 }
 
@@ -317,8 +317,8 @@ export function renderBlacksmith(s) {
     <div class="shop-item">
       <div class="shop-item-info">
         <div class="shop-item-name">${c.weapon.name}</div>
-        <div class="shop-item-desc">ATK +${c.weapon.attackBonus} · Nivel ${wLevel}/3</div>
-        ${nextW ? `<div class="shop-item-desc" style="color:var(--gold)">Siguiente: ${nextW.name} → ATK +${nextW.attackBonus}</div>` : '<div class="shop-item-desc">Nivel máximo</div>'}
+        <div class="shop-item-desc">ATK +${c.weapon.attackBonus} · Level ${wLevel}/3</div>
+        ${nextW ? `<div class="shop-item-desc" style="color:var(--gold)">Next: ${nextW.name} → ATK +${nextW.attackBonus}</div>` : '<div class="shop-item-desc">Max level</div>'}
       </div>
       ${nextW
         ? `<button class="btn-buy" onclick="game.upgradeWeapon()" ${s.gold < nextW.cost ? 'disabled' : ''}>${nextW.cost}⚜</button>`
@@ -329,8 +329,8 @@ export function renderBlacksmith(s) {
     <div class="shop-item">
       <div class="shop-item-info">
         <div class="shop-item-name">${c.armor.name}</div>
-        <div class="shop-item-desc">DEF +${c.armor.defenseBonus} · Nivel ${aLevel}/3</div>
-        ${nextA ? `<div class="shop-item-desc" style="color:var(--gold)">Siguiente: ${nextA.name} → DEF +${nextA.defenseBonus}</div>` : '<div class="shop-item-desc">Nivel máximo</div>'}
+        <div class="shop-item-desc">DEF +${c.armor.defenseBonus} · Level ${aLevel}/3</div>
+        ${nextA ? `<div class="shop-item-desc" style="color:var(--gold)">Next: ${nextA.name} → DEF +${nextA.defenseBonus}</div>` : '<div class="shop-item-desc">Max level</div>'}
       </div>
       ${nextA
         ? `<button class="btn-buy" onclick="game.upgradeArmor()" ${s.gold < nextA.cost ? 'disabled' : ''}>${nextA.cost}⚜</button>`
@@ -340,14 +340,14 @@ export function renderBlacksmith(s) {
   return `
     <div class="screen">
       <div class="top-bar">
-        <button class="btn-back" onclick="game.navigate('hub')">← Volver</button>
-        <span style="color:var(--gold)">⚒️ Herrería</span>
+        <button class="btn-back" onclick="game.navigate('hub')">← Back</button>
+        <span style="color:var(--gold)">⚒️ Blacksmith</span>
         <span class="gold-badge">⚜ ${s.gold}</span>
       </div>
-      <div class="card"><div class="card-body">Mejora tu arma y armadura. El equipo persiste entre runs.</div></div>
-      <div style="font-size:0.85rem;color:var(--muted);padding:4px 0">⚔ Arma</div>
+      <div class="card"><div class="card-body">Upgrade your weapon and armor. Equipment persists between runs.</div></div>
+      <div style="font-size:0.85rem;color:var(--muted);padding:4px 0">⚔ Weapon</div>
       ${weaponSection}
-      <div style="font-size:0.85rem;color:var(--muted);padding:4px 0">🛡 Armadura</div>
+      <div style="font-size:0.85rem;color:var(--muted);padding:4px 0">🛡 Armor</div>
       ${armorSection}
     </div>`;
 }
@@ -367,10 +367,10 @@ export function renderQuests(s) {
   return `
     <div class="screen">
       <div class="top-bar">
-        <button class="btn-back" onclick="game.navigate('hub')">← Volver</button>
-        <span style="color:var(--gold)">📜 Misiones</span>
+        <button class="btn-back" onclick="game.navigate('hub')">← Back</button>
+        <span style="color:var(--gold)">📜 Quests</span>
       </div>
-      <div class="card"><div class="card-body">Misiones disponibles en WindVale. Completa aventuras para progresar.</div></div>
+      <div class="card"><div class="card-body">Available quests in WindVale. Complete adventures to progress.</div></div>
       ${cards}
     </div>`;
 }
@@ -389,7 +389,7 @@ export function renderLore(s) {
         </div>
         <div class="npc-dialogue">"${npc.dialogue[dialogueIdx]}"</div>
         <div style="font-size:0.75rem;color:var(--muted);margin-top:8px;text-align:right">
-          ${dialogueIdx + 1}/${npc.dialogue.length} · Toca para continuar
+          ${dialogueIdx + 1}/${npc.dialogue.length} · Tap to continue
         </div>
       </div>`;
   }).join('');
@@ -397,8 +397,8 @@ export function renderLore(s) {
   return `
     <div class="screen">
       <div class="top-bar">
-        <button class="btn-back" onclick="game.navigate('hub')">← Volver</button>
-        <span style="color:var(--gold)">📖 Personajes</span>
+        <button class="btn-back" onclick="game.navigate('hub')">← Back</button>
+        <span style="color:var(--gold)">📖 Characters</span>
       </div>
       ${npcs}
     </div>`;
@@ -407,26 +407,26 @@ export function renderLore(s) {
 export function renderGameOver(s) {
   return `
     <div class="screen result-screen">
-      <div class="result-title defeat">Caíste en batalla</div>
+      <div class="result-title defeat">You fell in battle</div>
       <div class="result-body">
-        Tu aventura terminó, pero el oro persiste.<br>
-        <strong style="color:var(--gold)">Oro conservado: ${s.gold}⚜</strong>
+        Your adventure ended, but gold persists.<br>
+        <strong style="color:var(--gold)">Gold kept: ${s.gold}⚜</strong>
       </div>
       <div class="card" style="width:100%">
-        <div class="card-body">El run #${s.runNumber} termina aquí. Regresa al hub, mejora tu equipo, e inténtalo de nuevo.</div>
+        <div class="card-body">Run #${s.runNumber} ends here. Return to the hub, upgrade your gear, and try again.</div>
       </div>
-      <button class="btn-primary" style="max-width:280px" onclick="game.returnAfterDeath()">Regresar al hub</button>
+      <button class="btn-primary" style="max-width:280px" onclick="game.returnAfterDeath()">Return to hub</button>
     </div>`;
 }
 
 export function renderVictory(s) {
   return `
     <div class="screen result-screen">
-      <div class="result-title victory">¡Aventura completada!</div>
+      <div class="result-title victory">Adventure complete!</div>
       <div class="result-body">
-        Completaste <strong>${s.dungeon.adventure.name}</strong><br>
-        <strong style="color:var(--gold)">+${s.dungeon.totalGold}⚜ ganados</strong>
+        You completed <strong>${s.dungeon.adventure.name}</strong><br>
+        <strong style="color:var(--gold)">+${s.dungeon.totalGold}⚜ earned</strong>
       </div>
-      <button class="btn-primary" style="max-width:280px" onclick="game.navigate('hub')">Volver al hub</button>
+      <button class="btn-primary" style="max-width:280px" onclick="game.navigate('hub')">Return to hub</button>
     </div>`;
 }
