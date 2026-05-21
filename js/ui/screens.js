@@ -3,6 +3,7 @@ import { SHOP_ITEMS, WEAPON_UPGRADES, ARMOR_UPGRADES } from '../data/items.js';
 import { QUESTS } from '../data/quests.js';
 import { LORE_NPCS } from '../data/lore.js';
 import { ELEMENT_ICON, ELEMENT_COLOR } from '../data/elements.js';
+import { CLASSES } from '../data/classes.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -59,6 +60,10 @@ export function renderHub(s) {
   const c = s.character;
   const innCost = Math.floor(c.maxHp * 0.5);
   const notif = s.notification ? `<div class="notification">${s.notification}</div>` : '';
+  const cls = c._class;
+  const classLine = cls
+    ? `<div style="font-size:0.75rem;color:var(--gold);padding-top:4px;">${cls.icon} ${cls.name} <span style="color:var(--muted)">· ${cls.passiveDesc}</span></div>`
+    : `<div style="font-size:0.75rem;color:var(--warning);padding-top:4px;">⚠ No class selected — choose one below</div>`;
   return `
     <div class="screen">
       ${notif}
@@ -77,6 +82,7 @@ export function renderHub(s) {
           <span>${c.weapon.name}</span>
           <span>${c.armor.name}</span>
         </div>
+        ${classLine}
       </div>
 
       <div class="hub-grid">
@@ -97,6 +103,9 @@ export function renderHub(s) {
         </button>
         <button class="hub-btn" onclick="game.navigate('lore')">
           <span>📖</span>Characters
+        </button>
+        <button class="hub-btn" onclick="game.navigate('class-select')" style="grid-column:span 2;background:var(--panel)">
+          <span>⚗</span>Change Class
         </button>
       </div>
     </div>`;
@@ -428,5 +437,46 @@ export function renderVictory(s) {
         <strong style="color:var(--gold)">+${s.dungeon.totalGold}⚜ earned</strong>
       </div>
       <button class="btn-primary" style="max-width:280px" onclick="game.navigate('hub')">Return to hub</button>
+    </div>`;
+}
+
+export function renderClassSelect(s) {
+  const currentId = s.character._class?.id ?? null;
+
+  const cards = CLASSES.map(cls => {
+    const isSelected = cls.id === currentId;
+    const skillNames = cls.skills.map(sk => sk.name).join(', ');
+    const { maxHp, maxMp, baseAttack, baseDefense } = cls.stats;
+    return `
+      <div class="class-card${isSelected ? ' class-card-selected' : ''}" onclick="game.selectClass('${cls.id}')">
+        <div class="class-card-header">
+          <span class="class-card-icon">${cls.icon}</span>
+          <div>
+            <div class="class-card-name">${cls.name}${isSelected ? ' <span class="class-active-tag">Active</span>' : ''}</div>
+            <div class="class-card-passive">${cls.passiveDesc}</div>
+          </div>
+        </div>
+        <div class="class-card-desc">${cls.description}</div>
+        <div class="class-card-stats">
+          <span>❤ ${maxHp}</span>
+          <span>💧 ${maxMp}</span>
+          <span>⚔ ${baseAttack}</span>
+          <span>🛡 ${baseDefense}</span>
+        </div>
+        <div class="class-card-skills">Skills: ${skillNames}</div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="screen">
+      <div class="top-bar">
+        <button class="btn-back" onclick="game.navigate('hub')">← Back</button>
+        <span style="color:var(--gold)">⚗ Choose Class</span>
+        <span class="gold-badge">⚜ ${s.gold}</span>
+      </div>
+      <div class="card">
+        <div class="card-body">Your class persists between runs. Switching resets HP/MP to the new class values but keeps your gear and gold.</div>
+      </div>
+      ${cards}
     </div>`;
 }

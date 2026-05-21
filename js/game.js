@@ -3,10 +3,11 @@ import { Dungeon } from './engine/dungeon.js';
 import { Combat } from './engine/combat.js';
 import { SHOP_ITEMS, WEAPON_UPGRADES, ARMOR_UPGRADES } from './data/items.js';
 import { LORE_NPCS } from './data/lore.js';
+import { CLASSES } from './data/classes.js';
 import {
   renderHub, renderAdventureSelect, renderDungeon, renderCombat,
   renderShop, renderInn, renderBlacksmith, renderQuests, renderLore,
-  renderGameOver, renderVictory,
+  renderGameOver, renderVictory, renderClassSelect,
 } from './ui/screens.js';
 
 const SAVE_KEY = 'windvale_save';
@@ -26,6 +27,7 @@ const game = {
   init() {
     this.load();
     this.character = new Character();
+    this.applyPersistentClass();
     this.applyPersistentGear();
     this.render();
   },
@@ -35,10 +37,11 @@ const game = {
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return;
       const data = JSON.parse(raw);
-      this.gold         = data.gold         ?? 50;
-      this.runNumber    = data.runNumber    ?? 1;
-      this.loreDialogue = data.loreDialogue ?? {};
-      this._savedGear   = data.gear         ?? null;
+      this.gold           = data.gold         ?? 50;
+      this.runNumber      = data.runNumber    ?? 1;
+      this.loreDialogue   = data.loreDialogue ?? {};
+      this._savedGear     = data.gear         ?? null;
+      this._savedClassId  = data.classId      ?? null;
     } catch { /* ignore corrupt save */ }
   },
 
@@ -48,11 +51,18 @@ const game = {
       gold:         this.gold,
       runNumber:    this.runNumber,
       loreDialogue: this.loreDialogue,
+      classId:      c._class?.id ?? null,
       gear: {
         weapon: c.weapon,
         armor:  c.armor,
       },
     }));
+  },
+
+  applyPersistentClass() {
+    if (!this._savedClassId) return;
+    const cls = CLASSES.find(c => c.id === this._savedClassId);
+    if (cls) this.character.setClass(cls);
   },
 
   applyPersistentGear() {
@@ -68,6 +78,7 @@ const game = {
     const map = {
       hub:               () => renderHub(this),
       'adventure-select':() => renderAdventureSelect(this),
+      'class-select':    () => renderClassSelect(this),
       dungeon:           () => renderDungeon(this),
       combat:            () => renderCombat(this),
       shop:              () => renderShop(this),
@@ -203,13 +214,26 @@ const game = {
   },
 
   returnAfterDeath() {
-    // Soft death: gold and gear persist, character resets
+    // Soft death: gold, gear and class persist, character resets
     this.character = new Character();
+    this.applyPersistentClass();
     this.applyPersistentGear();
     this.dungeon  = null;
     this.combat   = null;
     this.runNumber = 1;
     this.save();
+    this.navigate('hub');
+  },
+
+  // ── Class selection ───────────────────────────────────────────────────────
+  selectClass(classId) {
+    const cls = CLASSES.find(c => c.id === classId);
+    if (!cls) return;
+    this.character.setClass(cls);
+    this.applyPersistentGear();
+    this._savedClassId = classId;
+    this.save();
+    this.notification = `Now playing as ${cls.icon} ${cls.name}!`;
     this.navigate('hub');
   },
 

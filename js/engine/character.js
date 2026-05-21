@@ -2,6 +2,7 @@ import { ELEMENTS } from '../data/elements.js';
 
 export class Character {
   constructor() {
+    this._class = null;
     this.name = 'Hero';
     this.element = ELEMENTS.NEUTRAL;
 
@@ -29,8 +30,21 @@ export class Character {
     ];
   }
 
-  get attack()  { return this.baseAttack  + (this.weapon?.attackBonus  ?? 0); }
-  get defense() { return this.baseDefense + (this.armor?.defenseBonus  ?? 0); }
+  get attack()       { return this.baseAttack  + (this.weapon?.attackBonus  ?? 0); }
+  get defense()      { return this.baseDefense + (this.armor?.defenseBonus  ?? 0); }
+  get classPassive() { return this._class?.passive ?? null; }
+
+  setClass(cls) {
+    this._class      = cls;
+    this.maxHp       = cls.stats.maxHp;
+    this.hp          = cls.stats.maxHp;
+    this.maxMp       = cls.stats.maxMp;
+    this.mp          = cls.stats.maxMp;
+    this.baseAttack  = cls.stats.baseAttack;
+    this.baseDefense = cls.stats.baseDefense;
+    this.speed       = cls.stats.speed;
+    this.skills      = cls.skills.map(s => ({ ...s }));
+  }
 
   isAlive() { return this.hp > 0; }
 

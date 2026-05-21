@@ -538,3 +538,72 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .notification.warn { background: var(--warning); color: #1a1208; }
 .notification.danger { background: var(--danger); }
+
+/* ── Class select ── */
+.class-card {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.class-card:active { transform: scale(0.98); }
+
+.class-card-selected { border-color: var(--gold); }
+
+.class-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.class-card-icon { font-size: 2rem; flex-shrink: 0; }
+
+.class-card-name {
+  font-size: 1rem;
+  color: var(--gold);
+  font-weight: bold;
+}
+
+.class-active-tag {
+  font-size: 0.7rem;
+  background: var(--gold);
+  color: #0c0a0b;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-weight: bold;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+.class-card-passive {
+  font-size: 0.75rem;
+  color: var(--warning);
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.class-card-desc {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.class-card-stats {
+  display: flex;
+  gap: 14px;
+  font-size: 0.8rem;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.class-card-skills {
+  font-size: 0.75rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
