@@ -1,0 +1,540 @@
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg:       #1a1208;
+  --panel:    #2a1e0f;
+  --card:     #3a2a14;
+  --border:   #5a3f20;
+  --gold:     #d4a017;
+  --text:     #e8d5b7;
+  --muted:    #9a8060;
+  --fire:     #e85d04;
+  --water:    #0096c7;
+  --earth:    #588157;
+  --air:      #90e0ef;
+  --neutral:  #adb5bd;
+  --hp:       #c0392b;
+  --mp:       #2980b9;
+  --hp-bg:    #5a1010;
+  --mp-bg:    #102040;
+  --success:  #4a8c3f;
+  --danger:   #c0392b;
+  --warning:  #d4a017;
+  --radius:   10px;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Georgia', serif;
+  min-height: 100vh;
+  font-size: 16px;
+}
+
+#app {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* ── Screens ── */
+.screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 12px;
+  gap: 10px;
+}
+
+/* ── Header bar ── */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+}
+
+.top-bar h1 {
+  font-size: 1.3rem;
+  color: var(--gold);
+  letter-spacing: 2px;
+}
+
+.gold-badge {
+  font-size: 1rem;
+  color: var(--gold);
+  font-weight: bold;
+}
+
+.run-badge {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* ── Stat bars ── */
+.stat-section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.bar-wrap {
+  flex: 1;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.bar-hp-bg  { background: var(--hp-bg); }
+.bar-mp-bg  { background: var(--mp-bg); }
+
+.bar-fill {
+  height: 100%;
+  border-radius: 7px;
+  transition: width 0.3s ease;
+}
+
+.bar-fill-hp { background: var(--hp); }
+.bar-fill-mp { background: var(--mp); }
+
+.stat-value {
+  font-size: 0.75rem;
+  color: var(--text);
+  width: 70px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Buttons ── */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  transition: filter 0.15s, transform 0.1s;
+  -webkit-user-select: none;
+}
+
+button:active { transform: scale(0.97); filter: brightness(0.9); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--gold);
+  color: #1a1208;
+  padding: 14px;
+  font-weight: bold;
+  width: 100%;
+}
+
+.btn-secondary {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 13px;
+  width: 100%;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+  padding: 13px;
+  width: 100%;
+}
+
+.btn-success {
+  background: var(--success);
+  color: #fff;
+  padding: 13px;
+  font-weight: bold;
+  width: 100%;
+}
+
+.btn-back {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  align-self: flex-start;
+}
+
+/* ── Hub menu grid ── */
+.hub-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.hub-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 18px 10px;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, filter 0.15s, transform 0.1s;
+}
+
+.hub-btn:active { transform: scale(0.97); filter: brightness(0.85); }
+.hub-btn span { font-size: 1.6rem; }
+
+.hub-btn-primary {
+  grid-column: span 2;
+  background: var(--gold);
+  color: #1a1208;
+  font-weight: bold;
+  padding: 20px;
+  font-size: 1.1rem;
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.card-title {
+  font-size: 1rem;
+  color: var(--gold);
+  margin-bottom: 6px;
+}
+
+.card-body {
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ── Element badge ── */
+.el-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+  color: #fff;
+}
+
+/* ── Combat screen ── */
+.combat-monster {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  text-align: center;
+}
+
+.monster-name {
+  font-size: 1.15rem;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+
+.monster-desc {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.combat-log {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  flex: 1;
+  overflow-y: auto;
+  max-height: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.log-entry {
+  font-size: 0.82rem;
+  padding: 3px 0;
+  border-bottom: 1px solid #2a1e0f;
+  line-height: 1.4;
+}
+
+.log-player      { color: #90cdf4; }
+.log-player-skill{ color: #b794f4; }
+.log-monster     { color: #fc8181; }
+.log-heal        { color: #68d391; }
+.log-info        { color: var(--muted); }
+.log-warning     { color: var(--warning); }
+.log-victory     { color: var(--gold); font-weight: bold; }
+.log-defeat      { color: var(--danger); font-weight: bold; }
+
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.action-btn {
+  padding: 16px 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+}
+
+.action-btn:active { transform: scale(0.97); filter: brightness(0.85); }
+
+/* ── Skills / Items sub-screen ── */
+.skill-list, .item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skill-btn, .item-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.skill-btn:disabled { opacity: 0.45; }
+
+.skill-cost {
+  font-size: 0.8rem;
+  color: #2980b9;
+}
+
+/* ── Progress bar ── */
+.progress-bar {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress-track {
+  flex: 1;
+  height: 10px;
+  background: var(--card);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 5px;
+  transition: width 0.4s ease;
+}
+
+.progress-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ── Adventure cards ── */
+.adventure-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.adventure-card:active { transform: scale(0.98); border-color: var(--gold); }
+
+.adventure-title {
+  font-size: 1rem;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+
+.adventure-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.difficulty-easy   { color: var(--success); }
+.difficulty-normal { color: var(--warning); }
+.difficulty-hard   { color: var(--fire); }
+
+/* ── Game over / Victory ── */
+.result-screen {
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+
+.result-title {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.result-title.defeat { color: var(--danger); }
+.result-title.victory { color: var(--gold); }
+
+.result-body {
+  font-size: 0.95rem;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+/* ── Shop / Blacksmith ── */
+.shop-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+
+.shop-item-info { flex: 1; }
+.shop-item-name { font-size: 0.95rem; color: var(--text); }
+.shop-item-desc { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+.btn-buy {
+  background: var(--gold);
+  color: #1a1208;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 10px;
+}
+
+.btn-buy:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Dungeon room ── */
+.room-card {
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.room-icon { font-size: 3rem; }
+.room-name { font-size: 1.2rem; color: var(--gold); }
+.room-desc { font-size: 0.85rem; color: var(--muted); }
+
+/* ── NPC dialogue ── */
+.npc-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  cursor: pointer;
+}
+
+.npc-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.npc-icon { font-size: 1.8rem; }
+
+.npc-name { font-size: 1rem; color: var(--gold); }
+.npc-role { font-size: 0.78rem; color: var(--muted); }
+
+.npc-dialogue {
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 1.6;
+  font-style: italic;
+  border-left: 3px solid var(--border);
+  padding-left: 10px;
+}
+
+/* ── Quest card ── */
+.quest-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.quest-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.quest-name { font-size: 1rem; color: var(--gold); }
+.quest-reward { font-size: 0.85rem; color: var(--gold); font-weight: bold; }
+.quest-objective { font-size: 0.82rem; color: var(--muted); margin-bottom: 4px; }
+.quest-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+
+/* ── Notification ── */
+.notification {
+  background: var(--success);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.notification.warn { background: var(--warning); color: #1a1208; }
+.notification.danger { background: var(--danger); }
