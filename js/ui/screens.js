@@ -2,7 +2,7 @@ import { ADVENTURES } from '../engine/dungeon.js';
 import { SHOP_ITEMS, WEAPON_UPGRADES, ARMOR_UPGRADES } from '../data/items.js';
 import { QUESTS } from '../data/quests.js';
 import { LORE_NPCS } from '../data/lore.js';
-import { ELEMENT_ICON, ELEMENT_COLOR } from '../data/elements.js';
+import { ELEMENT_ICON, ELEMENT_COLOR, getMultiplier } from '../data/elements.js';
 import { CLASSES } from '../data/classes.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -52,6 +52,21 @@ function progressBar(done, total) {
         <div class="progress-fill" style="width:${pct}%"></div>
       </div>
     </div>`;
+}
+
+function previewAttack(c, m) {
+  const minDmg = Math.max(1, Math.floor(c.attack * 0.9) - m.defense);
+  const maxDmg = Math.max(1, Math.floor(c.attack * 1.1) - m.defense);
+  return { minDmg, maxDmg };
+}
+
+function previewSkill(c, m, sk, surgeReady) {
+  if (sk.selfHeal) return { type: 'heal', value: sk.selfHeal };
+  let power = sk.power;
+  if (surgeReady && c.classPassive === 'arcane_surge') power *= 1.6;
+  const mult = getMultiplier(sk.element, m.element);
+  const dmg  = Math.max(1, Math.floor(c.attack * power * mult) - m.defense);
+  return { type: 'damage', value: dmg, mult };
 }
 
 // ── Screens ──────────────────────────────────────────────────────────────────
@@ -202,12 +217,27 @@ export function renderCombat(s) {
   if (done) {
     actionArea = `<div style="text-align:center;font-size:0.9rem;color:var(--muted)">Processing...</div>`;
   } else if (combat.subScreen === 'skills') {
-    const skillBtns = c.skills.map(sk => `
-      <button class="skill-btn" onclick="game.combatSkill('${sk.id}')"
-        ${!c.canUseSkill(sk) ? 'disabled' : ''}>
-        <span>${ELEMENT_ICON[sk.element]} ${sk.name}</span>
-        <span class="skill-cost">${sk.mpCost} MP</span>
-      </button>`).join('');
+    const skillBtns = c.skills.map(sk => {
+      const preview = previewSkill(c, m, sk, combat.surgeReady);
+      let previewSpan;
+      if (preview.type === 'heal') {
+        previewSpan = `<span class="dmg-preview dmg-heal">+${preview.value} HP</span>`;
+      } else {
+        const effClass = preview.mult >= 1.5 ? 'dmg-super'
+                       : preview.mult <= 0.5 ? 'dmg-resisted'
+                       : preview.mult < 1.0  ? 'dmg-weak' : '';
+        previewSpan = `<span class="dmg-preview ${effClass}">${preview.value}</span>`;
+      }
+      return `
+        <button class="skill-btn" onclick="game.combatSkill('${sk.id}')"
+          ${!c.canUseSkill(sk) ? 'disabled' : ''}>
+          <span>${ELEMENT_ICON[sk.element]} ${sk.name}</span>
+          <span style="display:flex;align-items:center;gap:6px">
+            ${previewSpan}
+            <span class="skill-cost">${sk.mpCost} MP</span>
+          </span>
+        </button>`;
+    }).join('');
     actionArea = `
       <div class="skill-list">${skillBtns}</div>
       <button class="btn-back" onclick="game.combatSubScreen(null)">← Back</button>`;
@@ -226,9 +256,14 @@ export function renderCombat(s) {
         <button class="btn-back" onclick="game.combatSubScreen(null)">← Back</button>`;
     }
   } else {
+    const { minDmg, maxDmg } = previewAttack(c, m);
+    const attackRange = minDmg === maxDmg ? `${minDmg}` : `${minDmg}–${maxDmg}`;
     actionArea = `
       <div class="action-grid">
-        <button class="action-btn" onclick="game.combatAttack()">⚔️ Attack</button>
+        <button class="action-btn action-btn-attack" onclick="game.combatAttack()">
+          ⚔️ Attack
+          <span class="dmg-preview">${attackRange}</span>
+        </button>
         <button class="action-btn" onclick="game.combatSubScreen('skills')">✨ Skills</button>
         <button class="action-btn" onclick="game.combatSubScreen('items')">🎒 Items</button>
         <button class="action-btn" onclick="game.combatFlee()">🏃 Flee</button>
@@ -246,6 +281,10 @@ export function renderCombat(s) {
             <div class="bar-fill bar-fill-hp" style="width:${m.hpPercent()*100}%"></div>
           </div>
           <span class="stat-value">${m.hp}/${m.maxHp}</span>
+        </div>
+        <div class="monster-stats-row">
+          <span>⚔ ${m.attack} ATK</span>
+          <span>🛡 ${m.defense} DEF</span>
         </div>
       </div>
 
