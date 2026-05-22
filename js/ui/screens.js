@@ -628,17 +628,33 @@ export function renderSkillTree(s) {
   const pts  = c.availableSkillPoints;
   const xpPct = Math.min(100, (c.xp / c.xpToNextLevel) * 100);
 
-  function branchHeader(branch, branchName) {
-    if (!c._lockedBranch) {
-      return `<div class="branch-header">${branchName}</div>`;
-    }
-    if (c._lockedBranch === branch) {
-      return `<div class="branch-header branch-locked">🔒 ${branchName} — Path Closed</div>`;
-    }
-    return `<div class="branch-header branch-chosen">✓ ${branchName} — Your Path</div>`;
+  const branchData = cls.branches ?? { a: { name: 'Path A', lore: '' }, b: { name: 'Path B', lore: '' } };
+
+  function branchStatus(branch) {
+    if (!c._lockedBranch) return '';
+    if (c._lockedBranch === branch) return 'locked';
+    return 'chosen';
   }
 
-  function renderBranch(branch, branchName) {
+  function branchHeader(branch) {
+    const { name, lore } = branchData[branch];
+    const status = branchStatus(branch);
+    const statusTag = status === 'locked'
+      ? '<span class="branch-status-tag branch-status-locked">🔒 Path Closed</span>'
+      : status === 'chosen'
+        ? '<span class="branch-status-tag branch-status-chosen">✓ Your Path</span>'
+        : '';
+    return `
+      <div class="branch-header-block ${status === 'locked' ? 'branch-block-locked' : status === 'chosen' ? 'branch-block-chosen' : ''}">
+        <div class="branch-title-row">
+          <span class="branch-title">${name}</span>
+          ${statusTag}
+        </div>
+        <div class="branch-lore">${lore}</div>
+      </div>`;
+  }
+
+  function renderBranch(branch) {
     const skills = tree.filter(sk => sk.branch === branch).sort((a, b) => a.tier - b.tier);
     const nodes = skills.map(sk => {
       const unlocked  = c._unlockedSkills.has(sk.id);
@@ -647,17 +663,10 @@ export function renderSkillTree(s) {
     }).join('');
     return `
       <div class="branch-section">
-        ${branchHeader(branch, branchName)}
+        ${branchHeader(branch)}
         <div style="display:flex;flex-direction:column;gap:8px">${nodes}</div>
       </div>`;
   }
-
-  // Derive branch names from first tier-1 skill descriptions (use class-specific names)
-  const branchAName = cls.skillTree.find(sk => sk.branch === 'a' && sk.tier === 1)?.name ?? 'Path A';
-  const branchBName = cls.skillTree.find(sk => sk.branch === 'b' && sk.tier === 1)?.name ?? 'Path B';
-
-  const branchAHeader = cls.skillTree.filter(sk => sk.branch === 'a' && sk.tier === 1)[0];
-  const branchBHeader = cls.skillTree.filter(sk => sk.branch === 'b' && sk.tier === 1)[0];
 
   return `
     <div class="screen">
@@ -680,10 +689,10 @@ export function renderSkillTree(s) {
           <div class="progress-fill" style="width:${xpPct}%"></div>
         </div>
         ${c.element !== 'Neutral' ? `<div style="font-size:0.75rem;color:#f6ad55;margin-top:2px">🔥 Dragon Path active — you are Fire element</div>` : ''}
-        ${!c._lockedBranch ? '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">⚠ Unlock any tier-2 skill to commit to that path and close the other.</div>' : ''}
+        ${!c._lockedBranch ? '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">Unlock a tier-2 skill to commit to that path — the other will close forever.</div>' : ''}
       </div>
-      ${renderBranch('a', 'Path A')}
-      ${renderBranch('b', 'Path B')}
+      ${renderBranch('a')}
+      ${renderBranch('b')}
     </div>`;
 }
 

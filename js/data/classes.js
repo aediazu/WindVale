@@ -10,6 +10,16 @@ export const CLASSES = [
     passive: 'battle_fury',
     passiveDesc: 'Battle Fury: Each hit received increases ATK by 2 for the rest of combat (max 5 stacks).',
     stats: { maxHp: 140, maxMp: 40, baseAttack: 18, baseDefense: 6, speed: 7 },
+    branches: {
+      a: {
+        name: 'The Ironwall',
+        lore: 'Some warriors win by never losing. Behind that shield lies an immovable object — something the dungeon has never truly broken. They absorb everything. They endure everything. Then they strike once, with everything they have left.',
+      },
+      b: {
+        name: 'The Devastator',
+        lore: "A greatsword doesn't defend. It ends things. Devastators don't take hits — they prevent them by killing too fast for anything to fight back. If you're still taking damage, you're not swinging hard enough.",
+      },
+    },
     skillTree: [
       // Branch A — Sword & Shield
       {
@@ -85,6 +95,16 @@ export const CLASSES = [
     passive: 'dragonhunter',
     passiveDesc: 'Dragonhunter: Deal +25% damage against Fire element enemies.',
     stats: { maxHp: 100, maxMp: 60, baseAttack: 22, baseDefense: 4, speed: 13 },
+    branches: {
+      a: {
+        name: 'The Wyrmbreaker',
+        lore: 'Generations of hunters died so this knowledge could exist. Every technique, every scar, every lost name carved into a blade — the Wyrmbreaker carries all of it. Dragons have weak points. Find them. End it.',
+      },
+      b: {
+        name: 'The Ascendant',
+        lore: "You didn't come here to hunt dragons. You came here to understand them. The flame inside you now isn't borrowed — it's yours. Your order would call it corruption. You call it evolution. Neither of you is entirely wrong.",
+      },
+    },
     skillTree: [
       // Branch A — Dragonhunter
       {
@@ -161,6 +181,16 @@ export const CLASSES = [
     passive: 'death_siphon',
     passiveDesc: 'Death Siphon: Restore 15 MP when an enemy is defeated.',
     stats: { maxHp: 75, maxMp: 120, baseAttack: 14, baseDefense: 1, speed: 11 },
+    branches: {
+      a: {
+        name: 'The Void Caller',
+        lore: "Death isn't an end. It's a resource. Void Callers harvest the energy that spills out when something stops living and forge it into weapons. The spells are elegant, if you can stomach what they're made of.",
+      },
+      b: {
+        name: 'The Bone Lord',
+        lore: "Why bleed for victory when someone else can bleed for you? The Bone Lord never fights alone. Every crypt, every battlefield, every forgotten grave — it's all potential. The undead don't tire. Don't question. Don't stop.",
+      },
+    },
     skillTree: [
       // Branch A — Dark Arts
       {
@@ -241,6 +271,16 @@ export const CLASSES = [
     passive: 'divine_favor',
     passiveDesc: 'Divine Favor: Restore 10 HP at the start of each of your turns.',
     stats: { maxHp: 100, maxMp: 90, baseAttack: 13, baseDefense: 4, speed: 10 },
+    branches: {
+      a: {
+        name: 'The Radiant',
+        lore: "The light doesn't just mend — it judges. Radiant Clerics are both healer and executioner, sustained by divine grace and ending battles in fire. They have never once doubted which side they're on. That certainty is its own kind of weapon.",
+      },
+      b: {
+        name: 'The Apostate',
+        lore: "Your order would cast you out for this. The shadow offered power your temple never could — and it asked for nothing except your willingness to take. Every life you drain is a life that feeds you. You've stopped calling it sin.",
+      },
+    },
     skillTree: [
       // Branch A — Light Cleric
       {
@@ -316,6 +356,16 @@ export const CLASSES = [
     passive: 'earthbond',
     passiveDesc: 'Earthbond: Earth element skills deal +20% bonus damage.',
     stats: { maxHp: 95, maxMp: 100, baseAttack: 15, baseDefense: 3, speed: 12 },
+    branches: {
+      a: {
+        name: 'The Spirit Caller',
+        lore: "The spirits were always here — you just learned to ask. A Spirit Caller doesn't fight alone. Totems of stone, storm, fire, and ancient memory stand alongside them, striking every time you do. The dungeon has never faced an army quite like this.",
+      },
+      b: {
+        name: 'The Stormcaller',
+        lore: 'Earth. Water. Wind. Force. The elements don\'t have morality — they have momentum. Stormcallers don\'t speak to nature, they command it. Every spell is a demand. Every battle ends with something broken.',
+      },
+    },
     skillTree: [
       // Branch A — Totem Path
       {

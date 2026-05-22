@@ -40,7 +40,7 @@ export class Character {
   get xpToNextLevel() { return this.level * 50; }
 
   get availableSkillPoints() {
-    return (this.level - 1) - this._unlockedSkills.size;
+    return this.level - this._unlockedSkills.size;
   }
 
   addXp(amount) {
