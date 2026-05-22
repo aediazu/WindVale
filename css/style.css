@@ -785,3 +785,65 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   color: var(--muted);
   margin-top: 6px;
 }
+
+/* ── Loadout screen ── */
+.loadout-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.loadout-card-active { border-color: var(--gold); }
+.loadout-card-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.loadout-card-icon { font-size: 1.8rem; flex-shrink: 0; }
+.loadout-card-name { font-weight: bold; font-size: 0.9rem; }
+.loadout-card-passive { font-size: 0.72rem; color: var(--muted); }
+.loadout-card-info { font-size: 0.72rem; color: var(--muted); }
+.loadout-tag { font-size: 0.72rem; background: var(--gold); color: #000; padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
+.loadout-add-btn, .loadout-remove-btn {
+  font-size: 0.8rem; padding: 6px 12px; border-radius: var(--radius);
+  border: 1px solid var(--border); cursor: pointer; white-space: nowrap;
+}
+.loadout-add-btn { background: var(--success); color: #000; border-color: var(--success); }
+.loadout-remove-btn { background: var(--panel); color: var(--text); }
+.loadout-add-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Combat: class switch subscreen ── */
+.switch-list { display: flex; flex-direction: column; gap: 8px; }
+.class-switch-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.class-switch-btn:disabled { opacity: 0.4; cursor: default; }
+.class-switch-active { border-color: var(--gold); }
+.csb-icon { font-size: 1.6rem; flex-shrink: 0; }
+.csb-info { flex: 1; min-width: 0; }
+.csb-name { font-weight: bold; font-size: 0.9rem; }
+.csb-passive { font-size: 0.72rem; color: var(--muted); }
+.csb-skills { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+.csb-tag { font-size: 0.68rem; background: var(--gold); color: #000; padding: 1px 5px; border-radius: 8px; }
+
+/* ── Combat: active class badge ── */
+.active-class-badge {
+  font-size: 0.78rem;
+  color: var(--gold);
+  font-weight: bold;
+  padding-top: 2px;
+}
+
+/* ── Combat: switch action button ── */
+.action-btn-switch { border-color: var(--success); }
+.action-btn-switch:disabled { opacity: 0.4; cursor: default; }

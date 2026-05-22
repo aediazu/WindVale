@@ -194,6 +194,9 @@ export function renderHub(s) {
         <button class="hub-btn" onclick="game.navigate('class-select')" style="background:var(--panel)">
           <span>⚗</span>Change Class
         </button>
+        <button class="hub-btn" onclick="game.navigate('loadout')" style="background:var(--panel)">
+          <span>🔀</span>Loadout <small style="font-size:0.7rem;color:var(--muted)">(${s._loadout.length}/3)</small>
+        </button>
       </div>
     </div>`;
 }
@@ -376,9 +379,33 @@ export function renderCombat(s) {
         <div class="item-list">${itemBtns}</div>
         <button class="btn-back" onclick="game.combatSubScreen(null)">← Back</button>`;
     }
+  } else if (combat.subScreen === 'switch') {
+    const loadoutClasses = s._loadout
+      .map(id => CLASSES.find(cl => cl.id === id))
+      .filter(Boolean);
+    const switchBtns = loadoutClasses.map(cls => {
+      const isActive = cls.id === c._class?.id;
+      const savedState = s._unlockedSkillsByClass[cls.id];
+      const skillCount = isActive ? c._unlockedSkills.size : (savedState ? (savedState.skills?.length ?? 0) : 0);
+      return `
+        <button class="class-switch-btn ${isActive ? 'class-switch-active' : ''}"
+          ${isActive || combat._switchedThisTurn ? 'disabled' : `onclick="game.combatSwitchClass('${cls.id}')"`}>
+          <span class="csb-icon">${cls.icon}</span>
+          <div class="csb-info">
+            <div class="csb-name">${cls.name}${isActive ? ' <span class="csb-tag">Active</span>' : ''}</div>
+            <div class="csb-passive">${cls.passiveDesc}</div>
+            <div class="csb-skills">${skillCount} skill${skillCount !== 1 ? 's' : ''} unlocked</div>
+          </div>
+        </button>`;
+    }).join('');
+    actionArea = `
+      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:6px">Switch to...</div>
+      <div class="switch-list">${switchBtns}</div>
+      <button class="btn-back" onclick="game.combatSubScreen(null)">← Back</button>`;
   } else {
     const { minDmg, maxDmg } = previewAttack(c, m);
     const attackRange = minDmg === maxDmg ? `${minDmg}` : `${minDmg}–${maxDmg}`;
+    const hasSwitch = s._loadout.length > 1;
     actionArea = `
       <div class="action-grid">
         <button class="action-btn action-btn-attack" onclick="game.combatAttack()">
@@ -387,7 +414,11 @@ export function renderCombat(s) {
         </button>
         <button class="action-btn" onclick="game.combatSubScreen('skills')">✨ Skills</button>
         <button class="action-btn" onclick="game.combatSubScreen('items')">🎒 Items</button>
-        <button class="action-btn" onclick="game.combatFlee()">🏃 Flee</button>
+        ${hasSwitch
+          ? `<button class="action-btn action-btn-switch" onclick="game.combatSubScreen('switch')"
+              ${combat._switchedThisTurn ? 'disabled' : ''}>🔀 Switch</button>`
+          : `<button class="action-btn" onclick="game.combatFlee()">🏃 Flee</button>`}
+        ${hasSwitch ? `<button class="action-btn" onclick="game.combatFlee()" style="grid-column:span 2">🏃 Flee</button>` : ''}
       </div>`;
   }
 
@@ -413,6 +444,7 @@ export function renderCombat(s) {
         ${hpBar(c.hp, c.maxHp)}
         ${mpBar(c.mp, c.maxMp)}
         ${charMiniStats(s.character)}
+        ${c._class ? `<div class="active-class-badge">${c._class.icon} ${c._class.name}${s._loadout.length > 1 && !combat._switchedThisTurn ? ' · <span style="color:var(--muted);font-size:0.7rem;font-weight:normal">tap Switch to change</span>' : combat._switchedThisTurn ? ' · <span style="color:var(--muted);font-size:0.7rem;font-weight:normal">switched</span>' : ''}</div>` : ''}
         ${combat.persistentBuff ? `<div class="active-buff">🔮 ${combat.persistentBuff.label} · +${combat.persistentBuff.bonusDamage} dmg/action</div>` : ''}
         ${combat.furyStacks > 0 ? `<div class="active-buff" style="color:#f6ad55">⚔ Battle Fury · +${combat.furyBonus} ATK (${combat.furyStacks} stack${combat.furyStacks > 1 ? 's' : ''})</div>` : ''}
       </div>
@@ -693,6 +725,59 @@ export function renderSkillTree(s) {
       </div>
       ${renderBranch('a')}
       ${renderBranch('b')}
+    </div>`;
+}
+
+export function renderLoadout(s) {
+  const currentId = s.character._class?.id ?? null;
+  const loadout = s._loadout;
+  const totalActive = loadout.length;
+
+  const cards = CLASSES.map(cls => {
+    const isMain    = cls.id === currentId;
+    const inLoadout = loadout.includes(cls.id);
+    const atMax     = totalActive >= 3 && !inLoadout;
+    const savedState = s._unlockedSkillsByClass[cls.id];
+    const skillCount = isMain ? s.character._unlockedSkills.size : (savedState ? (savedState.skills?.length ?? 0) : 0);
+
+    let actionBtn;
+    if (isMain) {
+      actionBtn = `<span class="loadout-tag">Main</span>`;
+    } else if (inLoadout) {
+      actionBtn = `<button class="loadout-remove-btn" onclick="game.toggleLoadout('${cls.id}')">Remove</button>`;
+    } else {
+      actionBtn = `<button class="loadout-add-btn" onclick="game.toggleLoadout('${cls.id}')"
+        ${atMax ? 'disabled' : ''}>Add${atMax ? ' (max 3)' : ''}</button>`;
+    }
+
+    return `
+      <div class="loadout-card ${inLoadout || isMain ? 'loadout-card-active' : ''}">
+        <div class="loadout-card-left">
+          <span class="loadout-card-icon">${cls.icon}</span>
+          <div>
+            <div class="loadout-card-name">${cls.name}</div>
+            <div class="loadout-card-passive">${cls.passiveDesc}</div>
+            <div class="loadout-card-info">${skillCount} skill${skillCount !== 1 ? 's' : ''} unlocked</div>
+          </div>
+        </div>
+        ${actionBtn}
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="screen">
+      <div class="top-bar">
+        <button class="btn-back" onclick="game.navigate('hub')">← Back</button>
+        <span style="color:var(--gold)">🔀 Loadout</span>
+        <span class="gold-badge">⚜ ${s.gold}</span>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          Choose up to 3 classes for combat. During battle, switch freely on your turn — stats, passives and unlocked skills swap instantly. Only one switch per monster turn.
+          <br><strong style="color:var(--warning)">${totalActive}/3 active.</strong>
+        </div>
+      </div>
+      ${cards}
     </div>`;
 }
 

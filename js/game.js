@@ -7,7 +7,7 @@ import { CLASSES } from './data/classes.js';
 import {
   renderHub, renderBetweenFloors, renderSkillTree, renderDungeon, renderCombat,
   renderShop, renderInn, renderBlacksmith, renderQuests, renderLore,
-  renderGameOver, renderVictory, renderClassSelect,
+  renderGameOver, renderVictory, renderClassSelect, renderLoadout,
 } from './ui/screens.js';
 
 const SAVE_KEY = 'windvale_save';
@@ -27,6 +27,7 @@ const game = {
   notification:           null,
   loreDialogue:           {},
   _unlockedSkillsByClass: {},
+  _loadout:               [],
 
   // ── Boot ──────────────────────────────────────────────────────────────────
   init() {
@@ -48,6 +49,7 @@ const game = {
       this.loreDialogue  = data.loreDialogue ?? {};
       this._savedGear    = data.gear         ?? null;
       this._savedClassId = data.classId      ?? null;
+      this._loadout      = data.loadout      ?? [];
     } catch { /* ignore corrupt save */ }
   },
 
@@ -59,6 +61,7 @@ const game = {
       bestFloor:    this.bestFloor,
       loreDialogue: this.loreDialogue,
       classId:      c._class?.id ?? null,
+      loadout:      this._loadout,
       gear: {
         weapon: c.weapon,
         armor:  c.armor,
@@ -87,6 +90,7 @@ const game = {
       'between-floors': () => renderBetweenFloors(this),
       'skill-tree':     () => renderSkillTree(this),
       'class-select':   () => renderClassSelect(this),
+      'loadout':        () => renderLoadout(this),
       dungeon:          () => renderDungeon(this),
       combat:           () => renderCombat(this),
       shop:             () => renderShop(this),
@@ -115,6 +119,11 @@ const game = {
 
   // ── Dungeon ───────────────────────────────────────────────────────────────
   enterDungeon() {
+    // Ensure current class is always in the loadout
+    const currentId = this.character._class?.id;
+    if (currentId && !this._loadout.includes(currentId)) {
+      this._loadout = [currentId, ...this._loadout];
+    }
     this.expeditionGold = 0;
     this.currentFloor   = 1;
     this.dungeon        = new Dungeon(1, this.runNumber);
@@ -283,10 +292,40 @@ const game = {
     this.render();
   },
 
+  // ── Loadout management ───────────────────────────────────────────────────
+  toggleLoadout(classId) {
+    const currentId = this.character._class?.id;
+    if (classId === currentId) return;
+    if (this._loadout.includes(classId)) {
+      this._loadout = this._loadout.filter(id => id !== classId);
+    } else {
+      if (this._loadout.length >= 3) return;
+      this._loadout = [...this._loadout, classId];
+    }
+    this.save();
+    this.render();
+  },
+
+  combatSwitchClass(classId) {
+    const cls = CLASSES.find(c => c.id === classId);
+    if (!cls || classId === this.character._class?.id) return;
+    const curId = this.character._class?.id;
+    if (curId) {
+      this._unlockedSkillsByClass[curId] = {
+        skills:       [...this.character._unlockedSkills],
+        lockedBranch: this.character._lockedBranch,
+      };
+    }
+    const savedState = this._unlockedSkillsByClass[classId];
+    this.combat.switchClass(cls, savedState);
+    this.render();
+  },
+
   // ── Class selection ───────────────────────────────────────────────────────
   selectClass(classId) {
-    if (this.character._class) {
-      this._unlockedSkillsByClass[this.character._class.id] = {
+    const oldMainId = this.character._class?.id ?? null;
+    if (oldMainId) {
+      this._unlockedSkillsByClass[oldMainId] = {
         skills:       [...this.character._unlockedSkills],
         lockedBranch: this.character._lockedBranch,
       };
@@ -306,6 +345,16 @@ const game = {
     }
     this.applyPersistentGear();
     this._savedClassId = classId;
+    // Ensure new class is in loadout; if full, replace old main slot
+    if (!this._loadout.includes(classId)) {
+      if (this._loadout.length < 3) {
+        this._loadout = [...this._loadout, classId];
+      } else if (oldMainId && this._loadout.includes(oldMainId)) {
+        this._loadout = this._loadout.map(id => id === oldMainId ? classId : id);
+      } else {
+        this._loadout = [classId, ...this._loadout.slice(1)];
+      }
+    }
     this.save();
     this.notification = `Now playing as ${cls.icon} ${cls.name}!`;
     this.navigate('hub');

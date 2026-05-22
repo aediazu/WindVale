@@ -9,10 +9,11 @@ export class Combat {
     this.goldEarned     = 0;
     this.xpEarned       = 0;
     this.subScreen      = null; // null | 'skills' | 'items'
-    this.surgeReady     = character.classPassive === 'arcane_surge';
-    this.furyStacks     = 0;
-    this.furyBonus      = 0;
-    this.persistentBuff = null; // { label, bonusDamage }
+    this.surgeReady        = character.classPassive === 'arcane_surge';
+    this.furyStacks        = 0;
+    this.furyBonus         = 0;
+    this.persistentBuff    = null; // { label, bonusDamage }
+    this._switchedThisTurn = false;
   }
 
   // --- Turn-start passives ---
@@ -221,6 +222,40 @@ export class Combat {
         this.addLog(`You defeated ${this.monster.name}! +${this.goldEarned}⚜`, 'victory');
       }
     }
+
+    this._switchedThisTurn = false;
+  }
+
+  switchClass(cls, savedState) {
+    if (this._switchedThisTurn) {
+      this.addLog('Already switched class this turn.', 'warning');
+      return false;
+    }
+    const currentHp = this.character.hp;
+    const currentMp = this.character.mp;
+    this.character.setClass(cls);
+    this.character.hp = currentHp;
+    this.character.mp = Math.min(currentMp, this.character.maxMp);
+
+    if (savedState) {
+      (savedState.skills ?? []).forEach(id => this.character._unlockedSkills.add(id));
+      this.character._lockedBranch = savedState.lockedBranch ?? null;
+      if (this.character._lockedBranch) {
+        const commitSkill = cls.skillTree.find(
+          sk => sk.tier === 2 && sk.branch !== this.character._lockedBranch
+        );
+        if (commitSkill?.transform === 'fire') this.character.element = 'Fire';
+      }
+    }
+
+    this.furyStacks        = 0;
+    this.furyBonus         = 0;
+    this.surgeReady        = cls.passive === 'arcane_surge';
+    this._switchedThisTurn = true;
+    this.subScreen         = null;
+
+    this.addLog(`Switched to ${cls.icon} ${cls.name}!`, 'passive');
+    return true;
   }
 
   isPlayerTurn() { return this.state === 'active'; }
