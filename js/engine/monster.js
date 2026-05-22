@@ -9,6 +9,7 @@ export class Monster {
     this.speed       = template.speed;
     this.skills      = template.skills;
     this.goldReward  = template.goldReward;
+    this.xpReward    = template.xpReward ?? 0;
 
     this.maxHp    = Math.round(template.baseHp     * scale);
     this.hp       = this.maxHp;

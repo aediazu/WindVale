@@ -613,6 +613,31 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   padding-top: 8px;
 }
 
+/* ── Skill tree nodes ── */
+.skill-node {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.skill-node-unlocked { border-color: var(--gold); }
+.skill-node-available { border-color: var(--success); cursor: pointer; }
+.skill-node-available:active { transform: scale(0.98); background: var(--panel); }
+.skill-node-locked { opacity: 0.4; }
+.skill-node-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+.skill-node-effect { font-size: 0.78rem; color: var(--warning); }
+.skill-node-desc { font-size: 0.75rem; color: var(--muted); font-style: italic; }
+.skill-node-cost { font-size: 0.75rem; color: var(--success); font-weight: bold; }
+
 /* ── Combat damage previews ── */
 .dmg-preview   { font-size: 0.75rem; font-weight: bold; color: var(--muted); white-space: nowrap; }
 .dmg-super     { color: #f6ad55; }

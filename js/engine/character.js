@@ -22,17 +22,49 @@ export class Character {
       { id: 'potion', name: 'Potion', quantity: 3, healHp: 30 },
     ];
 
-    this.skills = [
-      { id: 'fire_strike',  name: 'Fire Strike',   element: ELEMENTS.FIRE,  mpCost: 12, power: 1.6 },
-      { id: 'water_bolt',   name: 'Water Bolt',    element: ELEMENTS.WATER, mpCost: 12, power: 1.6 },
-      { id: 'earth_crush',  name: 'Earth Crush',   element: ELEMENTS.EARTH, mpCost: 12, power: 1.6 },
-      { id: 'air_slash',    name: 'Air Slash',     element: ELEMENTS.AIR,   mpCost: 12, power: 1.6 },
-    ];
+    this.level           = 1;
+    this.xp              = 0;
+    this._unlockedSkills = new Set();
   }
 
   get attack()       { return this.baseAttack  + (this.weapon?.attackBonus  ?? 0); }
   get defense()      { return this.baseDefense + (this.armor?.defenseBonus  ?? 0); }
   get classPassive() { return this._class?.passive ?? null; }
+
+  get skills() {
+    if (!this._class) return [];
+    return this._class.skillTree.filter(sk => this._unlockedSkills.has(sk.id));
+  }
+
+  get xpToNextLevel() { return this.level * 50; }
+
+  get availableSkillPoints() {
+    return (this.level - 1) - this._unlockedSkills.size;
+  }
+
+  addXp(amount) {
+    this.xp += amount;
+    let gained = 0;
+    while (this.xp >= this.xpToNextLevel) {
+      this.xp -= this.xpToNextLevel;
+      this.level++;
+      gained++;
+    }
+    return gained;
+  }
+
+  canUnlockSkill(skillId) {
+    if (!this._class || this._unlockedSkills.has(skillId)) return false;
+    if (this.availableSkillPoints < 1) return false;
+    const sk = this._class.skillTree.find(s => s.id === skillId);
+    return sk ? sk.requires.every(r => this._unlockedSkills.has(r)) : false;
+  }
+
+  unlockSkill(skillId) {
+    if (!this.canUnlockSkill(skillId)) return false;
+    this._unlockedSkills.add(skillId);
+    return true;
+  }
 
   setClass(cls) {
     this._class      = cls;
@@ -43,7 +75,7 @@ export class Character {
     this.baseAttack  = cls.stats.baseAttack;
     this.baseDefense = cls.stats.baseDefense;
     this.speed       = cls.stats.speed;
-    this.skills      = cls.skills.map(s => ({ ...s }));
+    this._unlockedSkills = new Set();
   }
 
   isAlive() { return this.hp > 0; }

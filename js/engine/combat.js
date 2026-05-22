@@ -7,6 +7,7 @@ export class Combat {
     this.log        = [];
     this.state      = 'active'; // 'active' | 'won' | 'lost' | 'fled'
     this.goldEarned = 0;
+    this.xpEarned   = 0;
     this.subScreen  = null; // null | 'skills' | 'items'
     this.surgeReady = character.classPassive === 'arcane_surge';
   }
@@ -55,6 +56,13 @@ export class Combat {
     const dmg  = this.monster.takeDamage(raw);
     const note = effectivenessText(mult);
     this.addLog(`${skill.name} → ${dmg} damage${note ? ' — ' + note : ''}${surgeNote}.`, 'player-skill');
+
+    if (skill.drain && dmg > 0) {
+      const absorbed = Math.max(1, Math.floor(dmg * skill.drain));
+      this.character.heal(absorbed);
+      this.addLog(`Soul drain: +${absorbed} HP absorbed.`, 'heal');
+    }
+
     this.subScreen = null;
     this.afterPlayerAction();
   }
@@ -94,8 +102,9 @@ export class Combat {
       this.monsterTurn();
     } else {
       this.goldEarned = this.monster.goldDrop();
+      this.xpEarned   = this.monster.xpReward;
       this.state = 'won';
-      this.addLog(`You defeated ${this.monster.name}! +${this.goldEarned} gold.`, 'victory');
+      this.addLog(`You defeated ${this.monster.name}! +${this.goldEarned}⚜`, 'victory');
     }
   }
 

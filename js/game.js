@@ -5,7 +5,7 @@ import { SHOP_ITEMS, WEAPON_UPGRADES, ARMOR_UPGRADES } from './data/items.js';
 import { LORE_NPCS } from './data/lore.js';
 import { CLASSES } from './data/classes.js';
 import {
-  renderHub, renderBetweenFloors, renderDungeon, renderCombat,
+  renderHub, renderBetweenFloors, renderSkillTree, renderDungeon, renderCombat,
   renderShop, renderInn, renderBlacksmith, renderQuests, renderLore,
   renderGameOver, renderVictory, renderClassSelect,
 } from './ui/screens.js';
@@ -14,18 +14,19 @@ const SAVE_KEY = 'windvale_save';
 
 const game = {
   // ── State ─────────────────────────────────────────────────────────────────
-  character:           null,
-  dungeon:             null,
-  combat:              null,
-  gold:                50,
-  expeditionGold:      0,
-  currentFloor:        1,
-  bestFloor:           0,
-  _lastExpeditionGold: 0,
-  runNumber:           1,
-  screen:              'hub',
-  notification:        null,
-  loreDialogue:        {},
+  character:              null,
+  dungeon:                null,
+  combat:                 null,
+  gold:                   50,
+  expeditionGold:         0,
+  currentFloor:           1,
+  bestFloor:              0,
+  _lastExpeditionGold:    0,
+  runNumber:              1,
+  screen:                 'hub',
+  notification:           null,
+  loreDialogue:           {},
+  _unlockedSkillsByClass: {},
 
   // ── Boot ──────────────────────────────────────────────────────────────────
   init() {
@@ -84,6 +85,7 @@ const game = {
     const map = {
       hub:              () => renderHub(this),
       'between-floors': () => renderBetweenFloors(this),
+      'skill-tree':     () => renderSkillTree(this),
       'class-select':   () => renderClassSelect(this),
       dungeon:          () => renderDungeon(this),
       combat:           () => renderCombat(this),
@@ -232,6 +234,7 @@ const game = {
     if (state === 'won') {
       const gold = this.dungeon.addGold(this.combat.goldEarned);
       this.expeditionGold += gold;
+      const leveled = this.character.addXp(this.combat.xpEarned ?? 0);
       setTimeout(() => {
         this.dungeon.advance();
         if (this.dungeon.done) {
@@ -239,9 +242,11 @@ const game = {
           if (this.dungeon.isFinalFloor) {
             this.completeDungeon();
           } else {
+            if (leveled > 0) this.notification = `⬆ Level ${this.character.level}! +${leveled} skill point${leveled > 1 ? 's' : ''} available.`;
             this.navigate('between-floors');
           }
         } else {
+          if (leveled > 0) this.notification = `⬆ Level ${this.character.level}! +${leveled} skill point${leveled > 1 ? 's' : ''} available.`;
           this.navigate('dungeon');
         }
       }, 1600);
@@ -255,6 +260,7 @@ const game = {
   },
 
   returnAfterDeath() {
+    this._unlockedSkillsByClass = {};
     this.character = new Character();
     this.applyPersistentClass();
     this.applyPersistentGear();
@@ -266,11 +272,24 @@ const game = {
     this.navigate('hub');
   },
 
+  // ── Skill tree ────────────────────────────────────────────────────────────
+  unlockSkill(skillId) {
+    if (!this.character.unlockSkill(skillId)) return;
+    const id = this.character._class?.id;
+    if (id) this._unlockedSkillsByClass[id] = [...this.character._unlockedSkills];
+    this.render();
+  },
+
   // ── Class selection ───────────────────────────────────────────────────────
   selectClass(classId) {
+    if (this.character._class) {
+      this._unlockedSkillsByClass[this.character._class.id] = [...this.character._unlockedSkills];
+    }
     const cls = CLASSES.find(c => c.id === classId);
     if (!cls) return;
     this.character.setClass(cls);
+    (this._unlockedSkillsByClass[classId] ?? [])
+      .forEach(id => this.character._unlockedSkills.add(id));
     this.applyPersistentGear();
     this._savedClassId = classId;
     this.save();

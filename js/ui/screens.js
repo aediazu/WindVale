@@ -68,6 +68,35 @@ function previewSkill(c, m, sk, surgeReady) {
   return { type: 'damage', value: dmg, mult };
 }
 
+// ── Skill tree helpers ────────────────────────────────────────────────────────
+
+function skillNodeHtml(sk, state, classSkillTree) {
+  const isUnlocked  = state === 'unlocked';
+  const isAvailable = state === 'available';
+  const effectLine = sk.selfHeal
+    ? `Heals ${sk.selfHeal} HP · ${sk.mpCost} MP`
+    : `${sk.power}× ATK${sk.drain ? ` + drain ${Math.round(sk.drain * 100)}%` : ''} · ${sk.mpCost} MP`;
+  const reqNames = sk.requires.map(id => {
+    const found = classSkillTree.find(s => s.id === id);
+    return found ? found.name : id;
+  }).join(', ');
+  return `
+    <div class="skill-node ${isUnlocked ? 'skill-node-unlocked' : isAvailable ? 'skill-node-available' : 'skill-node-locked'}"
+      ${isAvailable ? `onclick="game.unlockSkill('${sk.id}')"` : ''}>
+      <div class="skill-node-header">
+        <span>${ELEMENT_ICON[sk.element]} ${sk.name}</span>
+        ${isUnlocked
+          ? '<span style="color:var(--gold)">✓</span>'
+          : isAvailable
+            ? '<span class="skill-node-cost">1 pt →</span>'
+            : '<span style="opacity:0.5">🔒</span>'}
+      </div>
+      <div class="skill-node-effect">${effectLine}</div>
+      <div class="skill-node-desc">${sk.description}</div>
+      ${sk.requires.length ? `<div style="font-size:0.72rem;color:var(--muted)">Requires: ${reqNames}</div>` : ''}
+    </div>`;
+}
+
 // ── Screens ──────────────────────────────────────────────────────────────────
 
 export function renderHub(s) {
@@ -78,6 +107,16 @@ export function renderHub(s) {
   const classLine = cls
     ? `<div style="font-size:0.75rem;color:var(--gold);padding-top:4px;">${cls.icon} ${cls.name} <span style="color:var(--muted)">· ${cls.passiveDesc}</span></div>`
     : `<div style="font-size:0.75rem;color:var(--warning);padding-top:4px;">⚠ No class selected — choose one below</div>`;
+  const xpPct = c.xpToNextLevel > 0 ? (c.xp / c.xpToNextLevel) * 100 : 0;
+  const pts = c.availableSkillPoints;
+  const levelLine = `
+    <div style="font-size:0.75rem;color:var(--muted);padding-top:2px;display:flex;gap:12px;align-items:center">
+      <span>Lv.${c.level} · ${c.xp}/${c.xpToNextLevel} XP</span>
+      ${pts > 0 ? `<span style="color:var(--warning);font-weight:bold">${pts} pt${pts > 1 ? 's' : ''} unspent!</span>` : ''}
+    </div>
+    <div class="progress-track" style="height:4px;margin-top:3px">
+      <div class="progress-fill" style="width:${xpPct}%"></div>
+    </div>`;
   return `
     <div class="screen">
       ${notif}
@@ -97,11 +136,15 @@ export function renderHub(s) {
           <span>${c.armor.name}</span>
         </div>
         ${classLine}
+        ${levelLine}
       </div>
 
       <div class="hub-grid">
         <button class="hub-btn hub-btn-primary" onclick="game.enterDungeon()">
           ⚔ Enter the Dungeon
+        </button>
+        <button class="hub-btn" onclick="game.navigate('skill-tree')">
+          <span>🌟</span>Skill Tree
         </button>
         <button class="hub-btn" onclick="game.navigate('shop')">
           <span>🏪</span>Shop
@@ -118,7 +161,7 @@ export function renderHub(s) {
         <button class="hub-btn" onclick="game.navigate('lore')">
           <span>📖</span>Characters
         </button>
-        <button class="hub-btn" onclick="game.navigate('class-select')" style="grid-column:span 2;background:var(--panel)">
+        <button class="hub-btn" onclick="game.navigate('class-select')" style="background:var(--panel)">
           <span>⚗</span>Change Class
         </button>
       </div>
@@ -495,12 +538,70 @@ export function renderVictory(s) {
     </div>`;
 }
 
+export function renderSkillTree(s) {
+  const c   = s.character;
+  const cls = c._class;
+  if (!cls) {
+    return `
+      <div class="screen">
+        <div class="top-bar">
+          <button class="btn-back" onclick="game.navigate('hub')">← Back</button>
+          <span style="color:var(--gold)">🌟 Skill Tree</span>
+        </div>
+        <div class="card"><div class="card-body">Select a class first to access the skill tree.</div></div>
+      </div>`;
+  }
+
+  const tree = cls.skillTree;
+  const pts  = c.availableSkillPoints;
+  const xpPct = Math.min(100, (c.xp / c.xpToNextLevel) * 100);
+  const tierLabels = { 1: 'Foundation', 2: 'Mastery', 3: 'Expertise', 4: 'Pinnacle' };
+
+  const sections = [1, 2, 3, 4].map(t => {
+    const skills = tree.filter(sk => sk.tier === t);
+    const nodes = skills.map(sk => {
+      const unlocked  = c._unlockedSkills.has(sk.id);
+      const available = !unlocked && c.canUnlockSkill(sk.id);
+      return skillNodeHtml(sk, unlocked ? 'unlocked' : available ? 'available' : 'locked', tree);
+    }).join('');
+    return `
+      <div style="margin-top:14px">
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:0 2px 6px">${tierLabels[t]}</div>
+        <div style="display:flex;flex-direction:column;gap:8px">${nodes}</div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="screen">
+      <div class="top-bar">
+        <button class="btn-back" onclick="game.navigate('hub')">← Back</button>
+        <span style="color:var(--gold)">🌟 Skill Tree</span>
+        <span class="gold-badge">⚜ ${s.gold}</span>
+      </div>
+      <div class="stat-section" style="gap:5px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="color:var(--gold);font-weight:bold">${cls.icon} ${cls.name}</span>
+          <span style="font-size:0.85rem">Lv.${c.level} ·
+            ${pts > 0
+              ? `<strong style="color:var(--warning)">${pts} pt${pts > 1 ? 's' : ''} to spend</strong>`
+              : '<span style="color:var(--muted)">no points</span>'}
+          </span>
+        </div>
+        <div style="font-size:0.75rem;color:var(--muted)">${c.xp} / ${c.xpToNextLevel} XP to next level</div>
+        <div class="progress-track" style="height:6px">
+          <div class="progress-fill" style="width:${xpPct}%"></div>
+        </div>
+      </div>
+      ${sections}
+    </div>`;
+}
+
 export function renderClassSelect(s) {
   const currentId = s.character._class?.id ?? null;
 
   const cards = CLASSES.map(cls => {
     const isSelected = cls.id === currentId;
-    const skillNames = cls.skills.map(sk => sk.name).join(', ');
+    const skillNames = cls.skillTree.filter(sk => sk.tier === 1).map(sk => sk.name).join(', ');
     const { maxHp, maxMp, baseAttack, baseDefense } = cls.stats;
     return `
       <div class="class-card${isSelected ? ' class-card-selected' : ''}" onclick="game.selectClass('${cls.id}')">
@@ -518,7 +619,7 @@ export function renderClassSelect(s) {
           <span>⚔ ${baseAttack}</span>
           <span>🛡 ${baseDefense}</span>
         </div>
-        <div class="class-card-skills">Skills: ${skillNames}</div>
+        <div class="class-card-skills">Skills: ${skillNames} (${cls.skillTree.length} in tree)</div>
       </div>`;
   }).join('');
 
