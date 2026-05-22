@@ -60,11 +60,14 @@ function previewAttack(c, m) {
 }
 
 function previewSkill(c, m, sk, surgeReady) {
-  if (sk.selfHeal) return { type: 'heal', value: sk.selfHeal };
+  if (sk.buff) return { type: 'buff', bonus: sk.buff.bonusDamage };
+  if (sk.selfHeal && !sk.power) return { type: 'heal', value: sk.selfHeal };
   let power = sk.power;
   if (surgeReady && c.classPassive === 'arcane_surge') power *= 1.6;
-  const mult = getMultiplier(sk.element, m.element);
-  const dmg  = Math.max(1, Math.floor(c.attack * power * mult) - m.defense);
+  if (c.classPassive === 'earthbond' && sk.element === 'Earth') power *= 1.2;
+  let mult = getMultiplier(sk.element, m.element);
+  if (c.classPassive === 'dragonhunter' && m.element === 'Fire') mult *= 1.25;
+  const dmg = Math.max(1, Math.floor(c.attack * power * mult) - m.defense);
   return { type: 'damage', value: dmg, mult };
 }
 
@@ -93,9 +96,16 @@ function charMiniStats(c) {
 function skillNodeHtml(sk, state, classSkillTree) {
   const isUnlocked  = state === 'unlocked';
   const isAvailable = state === 'available';
-  const effectLine = sk.selfHeal
-    ? `Heals ${sk.selfHeal} HP · ${sk.mpCost} MP`
-    : `${sk.power}× ATK${sk.drain ? ` + drain ${Math.round(sk.drain * 100)}%` : ''} · ${sk.mpCost} MP`;
+  let effectLine;
+  if (sk.buff) {
+    effectLine = `Summons ${sk.buff.label} · +${sk.buff.bonusDamage} dmg/action · ${sk.mpCost} MP`;
+  } else if (sk.selfHeal && !sk.power) {
+    effectLine = `Heals ${sk.selfHeal} HP · ${sk.mpCost} MP`;
+  } else if (sk.selfHeal && sk.power) {
+    effectLine = `${sk.power}× ATK + heals ${sk.selfHeal} HP · ${sk.mpCost} MP`;
+  } else {
+    effectLine = `${sk.power}× ATK${sk.drain ? ` + drain ${Math.round(sk.drain * 100)}%` : ''} · ${sk.mpCost} MP`;
+  }
   const reqNames = sk.requires.map(id => {
     const found = classSkillTree.find(s => s.id === id);
     return found ? found.name : id;
@@ -329,7 +339,9 @@ export function renderCombat(s) {
     const skillBtns = c.skills.map(sk => {
       const preview = previewSkill(c, m, sk, combat.surgeReady);
       let previewSpan;
-      if (preview.type === 'heal') {
+      if (preview.type === 'buff') {
+        previewSpan = `<span class="dmg-preview" style="color:var(--success)">+${preview.bonus}/turn</span>`;
+      } else if (preview.type === 'heal') {
         previewSpan = `<span class="dmg-preview dmg-heal">+${preview.value} HP</span>`;
       } else {
         const effClass = preview.mult >= 1.5 ? 'dmg-super'
@@ -401,6 +413,8 @@ export function renderCombat(s) {
         ${hpBar(c.hp, c.maxHp)}
         ${mpBar(c.mp, c.maxMp)}
         ${charMiniStats(s.character)}
+        ${combat.persistentBuff ? `<div class="active-buff">🔮 ${combat.persistentBuff.label} · +${combat.persistentBuff.bonusDamage} dmg/action</div>` : ''}
+        ${combat.furyStacks > 0 ? `<div class="active-buff" style="color:#f6ad55">⚔ Battle Fury · +${combat.furyBonus} ATK (${combat.furyStacks} stack${combat.furyStacks > 1 ? 's' : ''})</div>` : ''}
       </div>
 
       <div class="combat-log">${logEntries || '<div class="log-entry log-info">Combat begins!</div>'}</div>
@@ -613,21 +627,37 @@ export function renderSkillTree(s) {
   const tree = cls.skillTree;
   const pts  = c.availableSkillPoints;
   const xpPct = Math.min(100, (c.xp / c.xpToNextLevel) * 100);
-  const tierLabels = { 1: 'Foundation', 2: 'Mastery', 3: 'Expertise', 4: 'Pinnacle' };
 
-  const sections = [1, 2, 3, 4].map(t => {
-    const skills = tree.filter(sk => sk.tier === t);
+  function branchHeader(branch, branchName) {
+    if (!c._lockedBranch) {
+      return `<div class="branch-header">${branchName}</div>`;
+    }
+    if (c._lockedBranch === branch) {
+      return `<div class="branch-header branch-locked">🔒 ${branchName} — Path Closed</div>`;
+    }
+    return `<div class="branch-header branch-chosen">✓ ${branchName} — Your Path</div>`;
+  }
+
+  function renderBranch(branch, branchName) {
+    const skills = tree.filter(sk => sk.branch === branch).sort((a, b) => a.tier - b.tier);
     const nodes = skills.map(sk => {
       const unlocked  = c._unlockedSkills.has(sk.id);
       const available = !unlocked && c.canUnlockSkill(sk.id);
       return skillNodeHtml(sk, unlocked ? 'unlocked' : available ? 'available' : 'locked', tree);
     }).join('');
     return `
-      <div style="margin-top:14px">
-        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:0 2px 6px">${tierLabels[t]}</div>
+      <div class="branch-section">
+        ${branchHeader(branch, branchName)}
         <div style="display:flex;flex-direction:column;gap:8px">${nodes}</div>
       </div>`;
-  }).join('');
+  }
+
+  // Derive branch names from first tier-1 skill descriptions (use class-specific names)
+  const branchAName = cls.skillTree.find(sk => sk.branch === 'a' && sk.tier === 1)?.name ?? 'Path A';
+  const branchBName = cls.skillTree.find(sk => sk.branch === 'b' && sk.tier === 1)?.name ?? 'Path B';
+
+  const branchAHeader = cls.skillTree.filter(sk => sk.branch === 'a' && sk.tier === 1)[0];
+  const branchBHeader = cls.skillTree.filter(sk => sk.branch === 'b' && sk.tier === 1)[0];
 
   return `
     <div class="screen">
@@ -649,8 +679,11 @@ export function renderSkillTree(s) {
         <div class="progress-track" style="height:6px">
           <div class="progress-fill" style="width:${xpPct}%"></div>
         </div>
+        ${c.element !== 'Neutral' ? `<div style="font-size:0.75rem;color:#f6ad55;margin-top:2px">🔥 Dragon Path active — you are Fire element</div>` : ''}
+        ${!c._lockedBranch ? '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">⚠ Unlock any tier-2 skill to commit to that path and close the other.</div>' : ''}
       </div>
-      ${sections}
+      ${renderBranch('a', 'Path A')}
+      ${renderBranch('b', 'Path B')}
     </div>`;
 }
 

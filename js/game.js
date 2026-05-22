@@ -276,20 +276,34 @@ const game = {
   unlockSkill(skillId) {
     if (!this.character.unlockSkill(skillId)) return;
     const id = this.character._class?.id;
-    if (id) this._unlockedSkillsByClass[id] = [...this.character._unlockedSkills];
+    if (id) this._unlockedSkillsByClass[id] = {
+      skills:       [...this.character._unlockedSkills],
+      lockedBranch: this.character._lockedBranch,
+    };
     this.render();
   },
 
   // ── Class selection ───────────────────────────────────────────────────────
   selectClass(classId) {
     if (this.character._class) {
-      this._unlockedSkillsByClass[this.character._class.id] = [...this.character._unlockedSkills];
+      this._unlockedSkillsByClass[this.character._class.id] = {
+        skills:       [...this.character._unlockedSkills],
+        lockedBranch: this.character._lockedBranch,
+      };
     }
     const cls = CLASSES.find(c => c.id === classId);
     if (!cls) return;
-    this.character.setClass(cls);
-    (this._unlockedSkillsByClass[classId] ?? [])
-      .forEach(id => this.character._unlockedSkills.add(id));
+    this.character.setClass(cls); // resets _unlockedSkills, _lockedBranch, element
+    const saved = this._unlockedSkillsByClass[classId];
+    if (saved) {
+      (saved.skills ?? []).forEach(id => this.character._unlockedSkills.add(id));
+      this.character._lockedBranch = saved.lockedBranch ?? null;
+      // Re-apply dragon transformation if previously committed
+      if (this.character._lockedBranch) {
+        const commitSkill = cls.skillTree.find(sk => sk.tier === 2 && sk.branch !== this.character._lockedBranch);
+        if (commitSkill?.transform === 'fire') this.character.element = 'Fire';
+      }
+    }
     this.applyPersistentGear();
     this._savedClassId = classId;
     this.save();

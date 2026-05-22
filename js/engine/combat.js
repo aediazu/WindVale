@@ -1,25 +1,43 @@
-import { getMultiplier, effectivenessText } from '../data/elements.js';
+import { ELEMENTS, getMultiplier, effectivenessText } from '../data/elements.js';
 
 export class Combat {
   constructor(character, monster) {
-    this.character  = character;
-    this.monster    = monster;
-    this.log        = [];
-    this.state      = 'active'; // 'active' | 'won' | 'lost' | 'fled'
-    this.goldEarned = 0;
-    this.xpEarned   = 0;
-    this.subScreen  = null; // null | 'skills' | 'items'
-    this.surgeReady = character.classPassive === 'arcane_surge';
+    this.character      = character;
+    this.monster        = monster;
+    this.log            = [];
+    this.state          = 'active'; // 'active' | 'won' | 'lost' | 'fled'
+    this.goldEarned     = 0;
+    this.xpEarned       = 0;
+    this.subScreen      = null; // null | 'skills' | 'items'
+    this.surgeReady     = character.classPassive === 'arcane_surge';
+    this.furyStacks     = 0;
+    this.furyBonus      = 0;
+    this.persistentBuff = null; // { label, bonusDamage }
+  }
+
+  // --- Turn-start passives ---
+
+  applyTurnStartPassives() {
+    if (this.character.classPassive === 'divine_favor') {
+      this.character.heal(10);
+      this.addLog('Divine Favor: +10 HP.', 'heal');
+    }
   }
 
   // --- Player actions ---
 
   attack() {
     if (!this.isPlayerTurn()) return;
+    this.applyTurnStartPassives();
+    const effectiveAtk = this.character.attack + this.furyBonus;
     const variance = 0.9 + Math.random() * 0.2;
-    const raw = Math.floor(this.character.attack * variance);
+    let raw = Math.floor(effectiveAtk * variance);
+    if (this.character.classPassive === 'dragonhunter' && this.monster.element === ELEMENTS.FIRE) {
+      raw = Math.floor(raw * 1.25);
+    }
     const dmg = this.monster.takeDamage(raw);
     this.addLog(`You attack ${this.monster.name} for ${dmg} damage.`, 'player');
+    this._applyPersistentBuff();
     this.subScreen = null;
     this.afterPlayerAction();
   }
@@ -30,29 +48,46 @@ export class Combat {
       this.addLog('Not enough MP.', 'warning');
       return;
     }
+    this.applyTurnStartPassives();
     this.character.spendMp(skill.mpCost);
 
-    // Plague Doctor: Field Dressing heals instead of dealing damage
-    if (skill.selfHeal) {
-      this.character.heal(skill.selfHeal);
-      this.addLog(`${skill.name} → You recover ${skill.selfHeal} HP.`, 'heal');
+    // Buff skills (summon / totem): no direct damage, set persistent buff
+    if (skill.buff) {
+      this.persistentBuff = { label: skill.buff.label, bonusDamage: skill.buff.bonusDamage };
+      this.addLog(`${skill.buff.label} summoned! +${skill.buff.bonusDamage} bonus dmg/action.`, 'player-skill');
       this.subScreen = null;
       this.afterPlayerAction();
       return;
     }
 
+    // Pure heal (no power field)
+    if (skill.selfHeal && !skill.power) {
+      this.character.heal(skill.selfHeal);
+      this.addLog(`${skill.name} → You recover ${skill.selfHeal} HP.`, 'heal');
+      this._applyPersistentBuff();
+      this.subScreen = null;
+      this.afterPlayerAction();
+      return;
+    }
+
+    // Damage (with optional combined heal)
     let power = skill.power;
     let surgeNote = '';
-
-    // Arcanist: first skill each combat gets +60% power
     if (this.character.classPassive === 'arcane_surge' && this.surgeReady) {
       power *= 1.6;
       this.surgeReady = false;
       surgeNote = ' ⚡ Surge!';
     }
+    if (this.character.classPassive === 'earthbond' && skill.element === ELEMENTS.EARTH) {
+      power *= 1.2;
+    }
 
-    const mult = getMultiplier(skill.element, this.monster.element);
-    const raw  = Math.floor(this.character.attack * power * mult);
+    let mult = getMultiplier(skill.element, this.monster.element);
+    if (this.character.classPassive === 'dragonhunter' && this.monster.element === ELEMENTS.FIRE) {
+      mult *= 1.25;
+    }
+    const effectiveAtk = this.character.attack + this.furyBonus;
+    const raw  = Math.floor(effectiveAtk * power * mult);
     const dmg  = this.monster.takeDamage(raw);
     const note = effectivenessText(mult);
     this.addLog(`${skill.name} → ${dmg} damage${note ? ' — ' + note : ''}${surgeNote}.`, 'player-skill');
@@ -60,15 +95,23 @@ export class Combat {
     if (skill.drain && dmg > 0) {
       const absorbed = Math.max(1, Math.floor(dmg * skill.drain));
       this.character.heal(absorbed);
-      this.addLog(`Soul drain: +${absorbed} HP absorbed.`, 'heal');
+      this.addLog(`Life drain: +${absorbed} HP absorbed.`, 'heal');
     }
 
+    // Combined damage+heal (e.g. warrior_indomitable)
+    if (skill.selfHeal && skill.power) {
+      this.character.heal(skill.selfHeal);
+      this.addLog(`${skill.name} → healed ${skill.selfHeal} HP.`, 'heal');
+    }
+
+    this._applyPersistentBuff();
     this.subScreen = null;
     this.afterPlayerAction();
   }
 
   useItem(itemId) {
     if (!this.isPlayerTurn()) return;
+    this.applyTurnStartPassives();
     const item = this.character.consumeItem(itemId);
     if (!item) { this.addLog('Cannot use that item.', 'warning'); return; }
     if (item.healHp) {
@@ -79,6 +122,7 @@ export class Combat {
       this.character.restoreMp(item.healMp);
       this.addLog(`You use ${item.name} and restore ${item.healMp} MP.`, 'heal');
     }
+    this._applyPersistentBuff();
     this.subScreen = null;
     this.afterPlayerAction();
   }
@@ -97,6 +141,13 @@ export class Combat {
 
   // --- Internal ---
 
+  _applyPersistentBuff() {
+    if (!this.persistentBuff || !this.monster.isAlive()) return;
+    const buffDmg = this.persistentBuff.bonusDamage;
+    this.monster.hp = Math.max(0, this.monster.hp - buffDmg);
+    this.addLog(`${this.persistentBuff.label}: +${buffDmg}!`, 'passive');
+  }
+
   afterPlayerAction() {
     if (this.monster.isAlive()) {
       this.monsterTurn();
@@ -105,6 +156,10 @@ export class Combat {
       this.xpEarned   = this.monster.xpReward;
       this.state = 'won';
       this.addLog(`You defeated ${this.monster.name}! +${this.goldEarned}⚜`, 'victory');
+      if (this.character.classPassive === 'death_siphon') {
+        this.character.restoreMp(15);
+        this.addLog('Death Siphon: +15 MP restored.', 'passive');
+      }
     }
   }
 
@@ -112,7 +167,6 @@ export class Combat {
     if (this.state !== 'active') return;
     const action = this.monster.chooseAction();
 
-    // Build raw damage and a deferred log message
     let raw;
     let buildLog;
 
@@ -123,17 +177,20 @@ export class Combat {
       const note = effectivenessText(mult);
       buildLog = dmg => `${this.monster.name} uses ${skill.name} → ${dmg} damage${note ? ' — ' + note : ''}.`;
     } else {
-      raw = this.monster.attack;
+      const mult = getMultiplier(this.monster.element, this.character.element);
+      raw = mult !== 1.0
+        ? Math.floor(this.monster.attack * mult)
+        : this.monster.attack;
       buildLog = dmg => `${this.monster.name} attacks you for ${dmg} damage.`;
     }
 
-    // Crusader: Fortitude reduces all incoming damage by 25%
+    // Fortitude passive (Warrior shield path spirit — kept for potential future use; currently Warrior uses battle_fury)
     if (this.character.classPassive === 'fortitude') raw = Math.floor(raw * 0.75);
 
     const dmg = this.character.takeDamage(raw);
     this.addLog(buildLog(dmg), 'monster');
 
-    // Plague Doctor: Battlefield Medicine recovers 20% of damage taken
+    // Battlefield Medicine
     if (this.character.classPassive === 'battlefield_medicine' && dmg > 0 && this.character.isAlive()) {
       const healed = Math.max(1, Math.floor(dmg * 0.20));
       this.character.heal(healed);
@@ -146,14 +203,22 @@ export class Combat {
       return;
     }
 
-    // Highwayman: Riposte — 35% chance to counter-attack
+    // Battle Fury: gain +2 ATK per hit (max 5 stacks)
+    if (this.character.classPassive === 'battle_fury' && this.furyStacks < 5) {
+      this.furyStacks++;
+      this.furyBonus = this.furyStacks * 2;
+      this.addLog(`Battle Fury! +2 ATK (${this.furyStacks} stack${this.furyStacks > 1 ? 's' : ''} — total +${this.furyBonus} ATK).`, 'passive');
+    }
+
+    // Riposte
     if (this.character.classPassive === 'riposte' && Math.random() < 0.35) {
       const counterDmg = this.monster.takeDamage(Math.floor(this.character.attack * 0.8));
       this.addLog(`Riposte! You counter for ${counterDmg} damage.`, 'player');
       if (!this.monster.isAlive()) {
         this.goldEarned = this.monster.goldDrop();
+        this.xpEarned   = this.monster.xpReward;
         this.state = 'won';
-        this.addLog(`You defeated ${this.monster.name}! +${this.goldEarned} gold.`, 'victory');
+        this.addLog(`You defeated ${this.monster.name}! +${this.goldEarned}⚜`, 'victory');
       }
     }
   }
@@ -162,6 +227,6 @@ export class Combat {
 
   addLog(message, type = 'info') {
     this.log.push({ message, type });
-    if (this.log.length > 12) this.log.shift();
+    if (this.log.length > 14) this.log.shift();
   }
 }

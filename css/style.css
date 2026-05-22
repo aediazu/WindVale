@@ -681,6 +681,33 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   flex-wrap: wrap;
 }
 
+/* ── Skill tree branch headers ── */
+.branch-section { margin-top: 16px; }
+.branch-header {
+  font-size: 0.78rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 6px 10px;
+  border-radius: 4px 4px 0 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  color: var(--muted);
+  margin-bottom: 0;
+}
+.branch-header + div { border-top: none; }
+.branch-chosen { color: var(--success); border-color: var(--success); background: color-mix(in srgb, var(--success) 15%, var(--panel)); }
+.branch-locked { color: var(--danger); border-color: var(--danger); opacity: 0.7; }
+
+/* ── Active combat buff indicator ── */
+.active-buff {
+  font-size: 0.75rem;
+  color: var(--success);
+  padding: 2px 0;
+  font-weight: bold;
+}
+
 /* ── Skill tree nodes ── */
 .skill-node {
   background: var(--card);

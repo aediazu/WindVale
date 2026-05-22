@@ -25,6 +25,7 @@ export class Character {
     this.level           = 1;
     this.xp              = 0;
     this._unlockedSkills = new Set();
+    this._lockedBranch   = null; // 'a' | 'b' | null
   }
 
   get attack()       { return this.baseAttack  + (this.weapon?.attackBonus  ?? 0); }
@@ -57,25 +58,39 @@ export class Character {
     if (!this._class || this._unlockedSkills.has(skillId)) return false;
     if (this.availableSkillPoints < 1) return false;
     const sk = this._class.skillTree.find(s => s.id === skillId);
-    return sk ? sk.requires.every(r => this._unlockedSkills.has(r)) : false;
+    if (!sk) return false;
+    // Branch lock: tier-2+ skills of the locked branch are unavailable
+    if (sk.tier >= 2 && this._lockedBranch && sk.branch === this._lockedBranch) return false;
+    return sk.requires.every(r => this._unlockedSkills.has(r));
   }
 
   unlockSkill(skillId) {
     if (!this.canUnlockSkill(skillId)) return false;
     this._unlockedSkills.add(skillId);
+    const sk = this._class.skillTree.find(s => s.id === skillId);
+    // Commit to this branch at tier 2 — lock the other branch's tier-2+
+    if (sk.tier >= 2 && !this._lockedBranch) {
+      this._lockedBranch = sk.branch === 'a' ? 'b' : 'a';
+    }
+    // Dragon Path transformation: character becomes Fire element
+    if (sk.transform === 'fire') {
+      this.element = ELEMENTS.FIRE;
+    }
     return true;
   }
 
   setClass(cls) {
-    this._class      = cls;
-    this.maxHp       = cls.stats.maxHp;
-    this.hp          = cls.stats.maxHp;
-    this.maxMp       = cls.stats.maxMp;
-    this.mp          = cls.stats.maxMp;
-    this.baseAttack  = cls.stats.baseAttack;
-    this.baseDefense = cls.stats.baseDefense;
-    this.speed       = cls.stats.speed;
+    this._class        = cls;
+    this.maxHp         = cls.stats.maxHp;
+    this.hp            = cls.stats.maxHp;
+    this.maxMp         = cls.stats.maxMp;
+    this.mp            = cls.stats.maxMp;
+    this.baseAttack    = cls.stats.baseAttack;
+    this.baseDefense   = cls.stats.baseDefense;
+    this.speed         = cls.stats.speed;
     this._unlockedSkills = new Set();
+    this._lockedBranch   = null;
+    this.element         = ELEMENTS.NEUTRAL;
   }
 
   isAlive() { return this.hp > 0; }
