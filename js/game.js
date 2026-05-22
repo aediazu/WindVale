@@ -5,7 +5,7 @@ import { SHOP_ITEMS, WEAPON_UPGRADES, ARMOR_UPGRADES } from './data/items.js';
 import { LORE_NPCS } from './data/lore.js';
 import { CLASSES } from './data/classes.js';
 import {
-  renderHub, renderAdventureSelect, renderDungeon, renderCombat,
+  renderHub, renderBetweenFloors, renderDungeon, renderCombat,
   renderShop, renderInn, renderBlacksmith, renderQuests, renderLore,
   renderGameOver, renderVictory, renderClassSelect,
 } from './ui/screens.js';
@@ -14,14 +14,18 @@ const SAVE_KEY = 'windvale_save';
 
 const game = {
   // ── State ─────────────────────────────────────────────────────────────────
-  character:    null,
-  dungeon:      null,
-  combat:       null,
-  gold:         50,
-  runNumber:    1,
-  screen:       'hub',
-  notification: null,
-  loreDialogue: {},       // { npcId: dialogueIndex }
+  character:           null,
+  dungeon:             null,
+  combat:              null,
+  gold:                50,
+  expeditionGold:      0,
+  currentFloor:        1,
+  bestFloor:           0,
+  _lastExpeditionGold: 0,
+  runNumber:           1,
+  screen:              'hub',
+  notification:        null,
+  loreDialogue:        {},
 
   // ── Boot ──────────────────────────────────────────────────────────────────
   init() {
@@ -37,11 +41,12 @@ const game = {
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return;
       const data = JSON.parse(raw);
-      this.gold           = data.gold         ?? 50;
-      this.runNumber      = data.runNumber    ?? 1;
-      this.loreDialogue   = data.loreDialogue ?? {};
-      this._savedGear     = data.gear         ?? null;
-      this._savedClassId  = data.classId      ?? null;
+      this.gold          = data.gold         ?? 50;
+      this.runNumber     = data.runNumber    ?? 1;
+      this.bestFloor     = data.bestFloor    ?? 0;
+      this.loreDialogue  = data.loreDialogue ?? {};
+      this._savedGear    = data.gear         ?? null;
+      this._savedClassId = data.classId      ?? null;
     } catch { /* ignore corrupt save */ }
   },
 
@@ -50,6 +55,7 @@ const game = {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       gold:         this.gold,
       runNumber:    this.runNumber,
+      bestFloor:    this.bestFloor,
       loreDialogue: this.loreDialogue,
       classId:      c._class?.id ?? null,
       gear: {
@@ -76,21 +82,20 @@ const game = {
   render() {
     const app = document.getElementById('app');
     const map = {
-      hub:               () => renderHub(this),
-      'adventure-select':() => renderAdventureSelect(this),
-      'class-select':    () => renderClassSelect(this),
-      dungeon:           () => renderDungeon(this),
-      combat:            () => renderCombat(this),
-      shop:              () => renderShop(this),
-      inn:               () => renderInn(this),
-      blacksmith:        () => renderBlacksmith(this),
-      quests:            () => renderQuests(this),
-      lore:              () => renderLore(this),
-      'game-over':       () => renderGameOver(this),
-      victory:           () => renderVictory(this),
+      hub:              () => renderHub(this),
+      'between-floors': () => renderBetweenFloors(this),
+      'class-select':   () => renderClassSelect(this),
+      dungeon:          () => renderDungeon(this),
+      combat:           () => renderCombat(this),
+      shop:             () => renderShop(this),
+      inn:              () => renderInn(this),
+      blacksmith:       () => renderBlacksmith(this),
+      quests:           () => renderQuests(this),
+      lore:             () => renderLore(this),
+      'game-over':      () => renderGameOver(this),
+      victory:          () => renderVictory(this),
     };
     app.innerHTML = (map[this.screen] ?? map.hub)();
-    // Scroll log to top so newest entries are visible
     const log = app.querySelector('.combat-log');
     if (log) log.scrollTop = 0;
   },
@@ -106,10 +111,30 @@ const game = {
     this.render();
   },
 
-  // ── Adventure ─────────────────────────────────────────────────────────────
-  startAdventure(adventureId) {
-    this.dungeon = new Dungeon(adventureId, this.runNumber);
+  // ── Dungeon ───────────────────────────────────────────────────────────────
+  enterDungeon() {
+    this.expeditionGold = 0;
+    this.currentFloor   = 1;
+    this.dungeon        = new Dungeon(1, this.runNumber);
     this.navigate('dungeon');
+  },
+
+  descendFloor() {
+    this.currentFloor++;
+    this.dungeon = new Dungeon(this.currentFloor, this.runNumber);
+    this.navigate('dungeon');
+  },
+
+  retreatToHub() {
+    this.gold += this.expeditionGold;
+    this.expeditionGold = 0;
+    this.dungeon = null;
+    this.save();
+    this.navigate('hub');
+  },
+
+  _updateBestFloor() {
+    if (this.currentFloor > this.bestFloor) this.bestFloor = this.currentFloor;
   },
 
   enterCombat() {
@@ -125,8 +150,8 @@ const game = {
 
     if (ev.effect.goldBonus) {
       const gained = this.dungeon.addGold(ev.effect.goldBonus);
-      this.gold += gained;
-      msg = `+${gained}⚜ gold`;
+      this.expeditionGold += gained;
+      msg = `+${gained}⚜ gold (at risk)`;
     } else if (ev.effect.healPercent) {
       const healed = Math.floor(c.maxHp * ev.effect.healPercent);
       c.heal(healed);
@@ -140,11 +165,16 @@ const game = {
       msg = `-${dmg} HP`;
     }
 
-    this.save();
     this.dungeon.advance();
 
     if (this.dungeon.done) {
-      this.completeDungeon();
+      this._updateBestFloor();
+      if (this.dungeon.isFinalFloor) {
+        this.completeDungeon();
+      } else {
+        this.notification = msg;
+        this.navigate('between-floors');
+      }
     } else {
       this.notification = msg;
       this.navigate('dungeon');
@@ -152,13 +182,17 @@ const game = {
   },
 
   fleeDungeon() {
+    this.expeditionGold = 0;
     this.dungeon = null;
     this.navigate('hub');
   },
 
   completeDungeon() {
     this.runNumber++;
-    this.gold += this.dungeon.totalGold;
+    this.gold += this.expeditionGold;
+    this._lastExpeditionGold = this.expeditionGold;
+    this.expeditionGold = 0;
+    this.dungeon = null;
     this.save();
     this.navigate('victory');
   },
@@ -197,12 +231,19 @@ const game = {
 
     if (state === 'won') {
       const gold = this.dungeon.addGold(this.combat.goldEarned);
-      this.gold += gold;
-      this.save();
+      this.expeditionGold += gold;
       setTimeout(() => {
         this.dungeon.advance();
-        if (this.dungeon.done) { this.completeDungeon(); }
-        else { this.navigate('dungeon'); }
+        if (this.dungeon.done) {
+          this._updateBestFloor();
+          if (this.dungeon.isFinalFloor) {
+            this.completeDungeon();
+          } else {
+            this.navigate('between-floors');
+          }
+        } else {
+          this.navigate('dungeon');
+        }
       }, 1600);
 
     } else if (state === 'lost') {
@@ -214,13 +255,13 @@ const game = {
   },
 
   returnAfterDeath() {
-    // Soft death: gold, gear and class persist, character resets
     this.character = new Character();
     this.applyPersistentClass();
     this.applyPersistentGear();
-    this.dungeon  = null;
-    this.combat   = null;
-    this.runNumber = 1;
+    this.dungeon        = null;
+    this.combat         = null;
+    this.expeditionGold = 0;
+    this.currentFloor   = 1;
     this.save();
     this.navigate('hub');
   },

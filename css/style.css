@@ -75,6 +75,11 @@ html, body {
   color: var(--muted);
 }
 
+.record-badge {
+  font-size: 0.75rem;
+  color: var(--warning);
+}
+
 /* ── Stat bars ── */
 .stat-section {
   background: var(--panel);

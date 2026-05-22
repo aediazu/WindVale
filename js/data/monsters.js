@@ -122,6 +122,19 @@ export const MONSTER_TEMPLATES = [
     ],
     description: 'A titan summoned by the eternal storms.',
   },
+  {
+    id: 'dungeon_heart',
+    name: "The Dungeon's Heart",
+    element: ELEMENTS.NEUTRAL,
+    tier: 3,
+    baseHp: 220, baseAttack: 28, baseDefense: 14, speed: 7,
+    goldReward: [150, 220],
+    skills: [
+      { name: 'Pulse of Ruin',  element: ELEMENTS.NEUTRAL, power: 1.6 },
+      { name: 'Abyssal Drain',  element: ELEMENTS.NEUTRAL, power: 2.0 },
+    ],
+    description: "A beating mass of corrupted mana at the dungeon's deepest point. Nobody has ever reached this far.",
+  },
 ];
 
 export function getByTier(tier) {

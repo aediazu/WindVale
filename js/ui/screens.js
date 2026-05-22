@@ -1,4 +1,3 @@
-import { ADVENTURES } from '../engine/dungeon.js';
 import { SHOP_ITEMS, WEAPON_UPGRADES, ARMOR_UPGRADES } from '../data/items.js';
 import { QUESTS } from '../data/quests.js';
 import { LORE_NPCS } from '../data/lore.js';
@@ -85,7 +84,7 @@ export function renderHub(s) {
       <div class="top-bar">
         <h1>WindVale</h1>
         <span class="gold-badge">⚜ ${s.gold}</span>
-        <span class="run-badge">Run #${s.runNumber}</span>
+        ${s.bestFloor > 0 ? `<span class="record-badge">Best: Floor ${s.bestFloor}</span>` : ''}
       </div>
 
       <div class="stat-section">
@@ -101,8 +100,8 @@ export function renderHub(s) {
       </div>
 
       <div class="hub-grid">
-        <button class="hub-btn hub-btn-primary" onclick="game.navigate('adventure-select')">
-          ⚔ Adventure
+        <button class="hub-btn hub-btn-primary" onclick="game.enterDungeon()">
+          ⚔ Enter the Dungeon
         </button>
         <button class="hub-btn" onclick="game.navigate('shop')">
           <span>🏪</span>Shop
@@ -126,28 +125,37 @@ export function renderHub(s) {
     </div>`;
 }
 
-export function renderAdventureSelect(s) {
-  const cards = ADVENTURES.map(adv => `
-    <div class="adventure-card" onclick="game.startAdventure('${adv.id}')">
-      <div class="adventure-title">${adv.name}</div>
-      <div class="adventure-meta">
-        <span class="${diffClass(adv.difficulty)}">${adv.difficulty}</span>
-        <span>${adv.rooms + 1} rooms</span>
-        <span>Gold ×${adv.goldMult.toFixed(1)}</span>
-      </div>
-      <div class="card-body">${adv.description}</div>
-    </div>`).join('');
+export function renderBetweenFloors(s) {
+  const nextFloor = s.currentFloor + 1;
+  const isApproachingFinal = nextFloor === 12;
+  const warning = isApproachingFinal
+    ? `<div class="notification" style="border-color:var(--danger);color:var(--danger)">
+        ⚠ Floor 12 awaits. Nobody has returned from this depth.
+       </div>`
+    : '';
 
   return `
-    <div class="screen">
-      <div class="top-bar">
-        <button class="btn-back" onclick="game.navigate('hub')">← Back</button>
-        <span class="gold-badge">⚜ ${s.gold}</span>
+    <div class="screen result-screen">
+      <div class="result-title victory">Floor ${s.currentFloor} Cleared!</div>
+      <div class="result-body">
+        <div style="margin-bottom:8px">
+          <span style="color:var(--muted);font-size:0.85rem">Hub gold (safe)</span><br>
+          <strong style="color:var(--gold);font-size:1.1rem">⚜ ${s.gold}</strong>
+        </div>
+        <div>
+          <span style="color:var(--muted);font-size:0.85rem">Expedition gold (at risk)</span><br>
+          <strong style="color:var(--warning);font-size:1.1rem">⚜ ${s.expeditionGold}</strong>
+        </div>
       </div>
-      <div class="card"><div class="card-title">Choose an Adventure</div>
-        <div class="card-body">Each adventure is a series of procedural combats. Gold and difficulty scale with runs.</div>
+      ${warning}
+      <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:320px">
+        <button class="btn-danger" onclick="game.descendFloor()">
+          ⬇ Descend to Floor ${nextFloor}
+        </button>
+        <button class="btn-success" onclick="game.retreatToHub()">
+          ↩ Retreat to Hub — keep ⚜ ${s.expeditionGold}
+        </button>
       </div>
-      ${cards}
     </div>`;
 }
 
@@ -162,7 +170,7 @@ export function renderDungeon(s) {
       <div class="room-name">Adventure complete!</div></div>`;
   } else if (room.type === 'event') {
     const ev = room.event;
-    const effectDesc = ev.effect.goldBonus  ? `+${ev.effect.goldBonus} gold`
+    const effectDesc = ev.effect.goldBonus  ? `+${ev.effect.goldBonus} gold (at risk)`
       : ev.effect.healPercent               ? `Restores ${Math.round(ev.effect.healPercent*100)}% HP`
       : ev.effect.mpPercent                 ? `Restores ${Math.round(ev.effect.mpPercent*100)}% MP`
       : ev.effect.damage                    ? `-${ev.effect.damage} HP`
@@ -191,8 +199,9 @@ export function renderDungeon(s) {
   return `
     <div class="screen">
       <div class="top-bar">
-        <span style="font-size:0.9rem;color:var(--gold)">${d.adventure.name}</span>
+        <span style="font-size:0.9rem;color:var(--gold)">Floor ${d.floorNumber} / 12</span>
         <span class="gold-badge">⚜ ${s.gold}</span>
+        <span class="record-badge" style="color:var(--warning)">+${s.expeditionGold}⚜ at risk</span>
       </div>
       ${progressBar(prog.done, prog.total)}
       <div class="stat-section" style="gap:6px">
@@ -200,7 +209,7 @@ export function renderDungeon(s) {
         ${mpBar(s.character.mp, s.character.maxMp)}
       </div>
       ${roomContent}
-      <button class="btn-secondary" onclick="game.fleeDungeon()">🏃 Abandon adventure</button>
+      <button class="btn-secondary" onclick="game.fleeDungeon()">🏃 Abandon expedition (lose at-risk gold)</button>
     </div>`;
 }
 
@@ -453,15 +462,19 @@ export function renderLore(s) {
 }
 
 export function renderGameOver(s) {
+  const recordLine = s.bestFloor > 0
+    ? `<div style="font-size:0.85rem;color:var(--muted);margin-top:6px">Best floor reached: ${s.bestFloor}</div>`
+    : '';
   return `
     <div class="screen result-screen">
       <div class="result-title defeat">You fell in battle</div>
       <div class="result-body">
-        Your adventure ended, but gold persists.<br>
-        <strong style="color:var(--gold)">Gold kept: ${s.gold}⚜</strong>
+        Your expedition gold is lost to the dungeon.<br>
+        <strong style="color:var(--gold)">Hub gold (safe): ⚜ ${s.gold}</strong>
+        ${recordLine}
       </div>
       <div class="card" style="width:100%">
-        <div class="card-body">Run #${s.runNumber} ends here. Return to the hub, upgrade your gear, and try again.</div>
+        <div class="card-body">Return to the hub, upgrade your gear, and descend again.</div>
       </div>
       <button class="btn-primary" style="max-width:280px" onclick="game.returnAfterDeath()">Return to hub</button>
     </div>`;
@@ -470,10 +483,13 @@ export function renderGameOver(s) {
 export function renderVictory(s) {
   return `
     <div class="screen result-screen">
-      <div class="result-title victory">Adventure complete!</div>
+      <div class="result-title victory">The Dungeon is Conquered!</div>
       <div class="result-body">
-        You completed <strong>${s.dungeon.adventure.name}</strong><br>
-        <strong style="color:var(--gold)">+${s.dungeon.totalGold}⚜ earned</strong>
+        The Dungeon's Heart has been destroyed.<br>
+        <strong style="color:var(--gold)">+${s._lastExpeditionGold}⚜ earned</strong><br>
+        <div style="font-size:0.85rem;color:var(--muted);margin-top:6px">
+          Best floor reached: ${s.bestFloor}
+        </div>
       </div>
       <button class="btn-primary" style="max-width:280px" onclick="game.navigate('hub')">Return to hub</button>
     </div>`;
