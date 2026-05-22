@@ -68,6 +68,26 @@ function previewSkill(c, m, sk, surgeReady) {
   return { type: 'damage', value: dmg, mult };
 }
 
+function charMiniStats(c) {
+  const xpPct = Math.min(100, (c.xp / c.xpToNextLevel) * 100);
+  const pts = c.availableSkillPoints;
+  const itemsLeft = c.items.reduce((sum, i) => sum + i.quantity, 0);
+  return `
+    <div class="char-mini-stats">
+      <span>Lv.${c.level}</span>
+      <span>⚔ ${c.attack}</span>
+      <span>🛡 ${c.defense}</span>
+      <span>💊 ${itemsLeft}</span>
+      ${pts > 0 ? `<span style="color:var(--warning);font-weight:bold">+${pts}pts!</span>` : ''}
+    </div>
+    <div class="char-mini-xp">
+      <div class="progress-track" style="height:3px">
+        <div class="progress-fill" style="width:${xpPct}%"></div>
+      </div>
+      <span>${c.xp}/${c.xpToNextLevel} XP</span>
+    </div>`;
+}
+
 // ── Skill tree helpers ────────────────────────────────────────────────────────
 
 function skillNodeHtml(sk, state, classSkillTree) {
@@ -170,6 +190,7 @@ export function renderHub(s) {
 
 export function renderBetweenFloors(s) {
   const nextFloor = s.currentFloor + 1;
+  const c = s.character;
   const isApproachingFinal = nextFloor === 12;
   const warning = isApproachingFinal
     ? `<div class="notification" style="border-color:var(--danger);color:var(--danger)">
@@ -177,19 +198,54 @@ export function renderBetweenFloors(s) {
        </div>`
     : '';
 
+  const xpPct = Math.min(100, (c.xp / c.xpToNextLevel) * 100);
+  const pts = c.availableSkillPoints;
+  const itemsLeft = c.items.reduce((sum, i) => sum + i.quantity, 0);
+  const hpPct = Math.round(c.hpPercent() * 100);
+
   return `
     <div class="screen result-screen">
       <div class="result-title victory">Floor ${s.currentFloor} Cleared!</div>
-      <div class="result-body">
-        <div style="margin-bottom:8px">
-          <span style="color:var(--muted);font-size:0.85rem">Hub gold (safe)</span><br>
-          <strong style="color:var(--gold);font-size:1.1rem">⚜ ${s.gold}</strong>
+
+      <div class="btf-gold-row">
+        <div class="btf-gold-cell">
+          <span class="btf-gold-label">Hub gold (safe)</span>
+          <strong class="btf-gold-value" style="color:var(--gold)">⚜ ${s.gold}</strong>
         </div>
-        <div>
-          <span style="color:var(--muted);font-size:0.85rem">Expedition gold (at risk)</span><br>
-          <strong style="color:var(--warning);font-size:1.1rem">⚜ ${s.expeditionGold}</strong>
+        <div class="btf-gold-cell">
+          <span class="btf-gold-label">Expedition gold (at risk)</span>
+          <strong class="btf-gold-value" style="color:var(--warning)">⚜ ${s.expeditionGold}</strong>
         </div>
       </div>
+
+      <div class="btf-char-panel">
+        <div class="btf-char-header">
+          ${c._class ? `${c._class.icon} ${c._class.name}` : 'Hero'} · Lv.${c.level}
+          ${pts > 0 ? `<span class="btf-pts-badge">${pts} pt${pts > 1 ? 's' : ''} to spend</span>` : ''}
+        </div>
+        <div style="margin:6px 0 2px">
+          ${hpBar(c.hp, c.maxHp)}
+        </div>
+        <div style="margin-bottom:6px">
+          ${mpBar(c.mp, c.maxMp)}
+        </div>
+        <div class="btf-stat-row">
+          <span>⚔ ATK ${c.attack}</span>
+          <span>🛡 DEF ${c.defense}</span>
+          <span>💊 Items: ${itemsLeft}</span>
+          <span>✨ Skills: ${c._unlockedSkills.size}</span>
+        </div>
+        <div style="margin-top:6px">
+          <div style="font-size:0.72rem;color:var(--muted);margin-bottom:2px">XP · ${c.xp} / ${c.xpToNextLevel}</div>
+          <div class="progress-track" style="height:5px">
+            <div class="progress-fill" style="width:${xpPct}%"></div>
+          </div>
+        </div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:6px">
+          HP at ${hpPct}% — ${hpPct < 40 ? '⚠ Low! Consider retreating.' : hpPct < 70 ? 'Manageable, but careful.' : 'Good shape for next floor.'}
+        </div>
+      </div>
+
       ${warning}
       <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:320px">
         <button class="btn-danger" onclick="game.descendFloor()">
@@ -250,6 +306,7 @@ export function renderDungeon(s) {
       <div class="stat-section" style="gap:6px">
         ${hpBar(s.character.hp, s.character.maxHp)}
         ${mpBar(s.character.mp, s.character.maxMp)}
+        ${charMiniStats(s.character)}
       </div>
       ${roomContent}
       <button class="btn-secondary" onclick="game.fleeDungeon()">🏃 Abandon expedition (lose at-risk gold)</button>
@@ -343,6 +400,7 @@ export function renderCombat(s) {
       <div class="stat-section">
         ${hpBar(c.hp, c.maxHp)}
         ${mpBar(c.mp, c.maxMp)}
+        ${charMiniStats(s.character)}
       </div>
 
       <div class="combat-log">${logEntries || '<div class="log-entry log-info">Combat begins!</div>'}</div>
