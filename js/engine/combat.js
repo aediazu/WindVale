@@ -60,6 +60,11 @@ export class Combat {
     return this.statuses.monster.vulnerable ? 1.3 : 1.0;
   }
 
+  // Weakened reduces monster ATK by 25%
+  monsterAttackMult() {
+    return this.statuses.monster.weakened ? 0.75 : 1.0;
+  }
+
   // ── Tick status effects ───────────────────────────────────────────────────
 
   tickPlayerStatuses() {
@@ -91,13 +96,31 @@ export class Combat {
         this.addLog('Vulnerable fades.', 'info');
       }
     }
+
+    const stagger = this.statuses.monster.stagger;
+    if (stagger) {
+      stagger.turnsLeft--;
+      if (stagger.turnsLeft <= 0) {
+        delete this.statuses.monster.stagger;
+        this.addLog(`${this.monster.name} recovers from Stagger.`, 'info');
+      }
+    }
+
+    const weakened = this.statuses.monster.weakened;
+    if (weakened) {
+      weakened.turnsLeft--;
+      if (weakened.turnsLeft <= 0) {
+        delete this.statuses.monster.weakened;
+        this.addLog(`${this.monster.name} is no longer Weakened.`, 'info');
+      }
+    }
   }
 
   // ── Damage helper ─────────────────────────────────────────────────────────
 
   _dealDamageToMonster(rawPower, element, physical) {
-    const fury    = this.playerDamageMult();
-    const vuln    = this.monsterDamageMult();
+    const fury     = this.playerDamageMult();
+    const vuln     = this.monsterDamageMult();
     const elemMult = getMultiplier(element, this.monster.element);
     const raw  = Math.floor(this.character.attack * rawPower * fury * vuln * elemMult);
     const dmg  = this.monster.takeDamage(raw);
@@ -122,9 +145,9 @@ export class Combat {
     switch (skill.id) {
       case 'warrior_shatter': this._doShatteringStrike(); break;
       case 'warrior_stance':  this._doIronStance();       break;
-      case 'warrior_charge':  this._doCharge();           break;
+      case 'warrior_cry':     this._doBattleCry();        break;
       case 'sc_ignition':     this._doIgnition();         break;
-      case 'sc_freeze':       this._doFreeze();           break;
+      case 'sc_frost':        this._doFrostNova();        break;
       case 'sc_discharge':    this._doDischarge();        break;
       case 'sc_veil':         this._doArcaneVeil();       break;
       default:
@@ -137,47 +160,58 @@ export class Combat {
 
   _doShatteringStrike() {
     const alreadyVulnerable = this.hasMonsterStatus('vulnerable');
+    const hasStagger = this.hasMonsterStatus('stagger');
+
+    // Stagger combo: 1.5× damage + Stun instead of 1.2× + Vulnerable
+    if (hasStagger) {
+      delete this.statuses.monster.stagger;
+      const { dmg, elemMult } = this._dealDamageToMonster(1.5, ELEMENTS.NEUTRAL, true);
+      const note = effectivenessText(elemMult);
+      this.applyMonsterStatus('stunned', { turnsLeft: 1 });
+      this.addLog(`Shattering Strike breaks the Stagger! → ${dmg} damage${note ? ' — ' + note : ''}. STUNNED!`, 'player-skill');
+      return;
+    }
+
     const { dmg, elemMult } = this._dealDamageToMonster(1.2, ELEMENTS.NEUTRAL, true);
     const note = effectivenessText(elemMult);
     this.addLog(`Shattering Strike → ${dmg} damage${note ? ' — ' + note : ''}. Vulnerable applied.`, 'player-skill');
     this.applyMonsterStatus('vulnerable', { turnsLeft: 2 });
     if (alreadyVulnerable) {
       const gained = this.gainImpetus(1);
-      if (gained > 0) this.addLog(`Enemy already Vulnerable — +${gained}⚡ Impetus (${this.impetus}/${this.maxImpetus}).`, 'passive');
+      if (gained > 0) this.addLog(`Enemy already Vulnerable — +${gained}⚡ (${this.impetus}/${this.maxImpetus}).`, 'passive');
     }
   }
 
   _doIronStance() {
     this.stanceActive = true;
     const gained = this.gainImpetus(2);
-    this.addLog(`Iron Stance — bracing for impact. +${gained}⚡ Impetus (${this.impetus}/${this.maxImpetus}). Next hit: 50% dmg + Stun.`, 'player-skill');
+    this.addLog(`Iron Stance — bracing for impact. +${gained}⚡ (${this.impetus}/${this.maxImpetus}). Next hit: 50% dmg. If hit → Stagger!`, 'player-skill');
   }
 
-  _doCharge() {
-    const { dmg, elemMult } = this._dealDamageToMonster(1.5, ELEMENTS.NEUTRAL, true);
-    const note = effectivenessText(elemMult);
-    this.addLog(`Charge → ${dmg} damage${note ? ' — ' + note : ''}. Destabilized!`, 'player-skill');
-    this.applyMonsterStatus('destabilized', { turnsLeft: 1 });
+  _doBattleCry() {
+    const gained = this.gainImpetus(3);
+    this.applyMonsterStatus('weakened', { turnsLeft: 2 });
+    this.addLog(`Battle Cry! +${gained}⚡ (${this.impetus}/${this.maxImpetus}). ${this.monster.name} is Weakened — ATK -25% for 2 turns.`, 'player-skill');
   }
 
   _doIgnition() {
-    const { dmg, elemMult } = this._dealDamageToMonster(0.7, ELEMENTS.FIRE, false);
+    const { dmg, elemMult } = this._dealDamageToMonster(0.8, ELEMENTS.FIRE, false);
     const note = effectivenessText(elemMult);
     const burnDmg = Math.max(1, Math.floor(this.character.attack * 0.4));
     this.applyMonsterStatus('ignited', { turnsLeft: 3, burnDamage: burnDmg });
     this.addLog(`Ignition → ${dmg} fire damage${note ? ' — ' + note : ''}. Burns ${burnDmg}/turn for 3 turns.`, 'player-skill');
   }
 
-  _doFreeze() {
+  _doFrostNova() {
     const { dmg, elemMult } = this._dealDamageToMonster(1.0, ELEMENTS.WATER, false);
     const note = effectivenessText(elemMult);
     this.applyMonsterStatus('frozen', { actionsLeft: 2 });
-    this.addLog(`Freeze → ${dmg} water damage${note ? ' — ' + note : ''}. Frozen for 2 actions!`, 'player-skill');
+    this.addLog(`Frost Nova → ${dmg} water damage${note ? ' — ' + note : ''}. Frozen for 2 actions!`, 'player-skill');
   }
 
   _doDischarge() {
     const statusCount = this.activeMonsterStatusCount();
-    const power = 1.5 + 0.5 * statusCount;
+    const power = 2.0 + 0.5 * statusCount;
     const { dmg, elemMult } = this._dealDamageToMonster(power, ELEMENTS.NEUTRAL, false);
     const note = effectivenessText(elemMult);
     this.addLog(`Discharge → ${dmg} damage (${power.toFixed(1)}× · ${statusCount} status${statusCount !== 1 ? 'es' : ''})${note ? ' — ' + note : ''}.`, 'player-skill');
@@ -263,21 +297,12 @@ export class Combat {
       return;
     }
 
-    // Stunned
+    // Stunned: skip action
     if (this.statuses.monster.stunned) {
       const st = this.statuses.monster.stunned;
       st.turnsLeft--;
       if (st.turnsLeft <= 0) delete this.statuses.monster.stunned;
       this.addLog(`${this.monster.name} is stunned and cannot act.`, 'info');
-      return;
-    }
-
-    // Destabilized: skip action
-    if (this.statuses.monster.destabilized) {
-      const dest = this.statuses.monster.destabilized;
-      dest.turnsLeft--;
-      if (dest.turnsLeft <= 0) delete this.statuses.monster.destabilized;
-      this.addLog(`${this.monster.name} is destabilized and cannot act.`, 'info');
       return;
     }
 
@@ -298,12 +323,12 @@ export class Combat {
     if (action.type === 'skill') {
       const { skill } = action;
       const mult = getMultiplier(skill.element, this.character.element);
-      raw = Math.floor(this.monster.attack * skill.power * mult);
+      raw = Math.floor(this.monster.attack * skill.power * this.monsterAttackMult() * mult);
       const note = effectivenessText(mult);
       buildLog = dmg => `${this.monster.name} uses ${skill.name} → ${dmg} damage${note ? ' — ' + note : ''}.`;
     } else {
       const mult = getMultiplier(this.monster.element, this.character.element);
-      raw = mult !== 1.0 ? Math.floor(this.monster.attack * mult) : this.monster.attack;
+      raw = Math.floor(this.monster.attack * this.monsterAttackMult() * mult);
       buildLog = dmg => `${this.monster.name} attacks for ${dmg} damage.`;
     }
 
@@ -315,12 +340,12 @@ export class Combat {
       return;
     }
 
-    // Stance: halve damage, stun monster, clear stance
+    // Stance: halve damage, apply Stagger to monster, clear stance
     const wasStance = this.stanceActive;
     if (wasStance) {
       raw = Math.floor(raw * 0.5);
       this.stanceActive = false;
-      this.applyMonsterStatus('stunned', { turnsLeft: 1 });
+      this.applyMonsterStatus('stagger', { turnsLeft: 1 });
     }
 
     const prevHp = this.character.hp;
@@ -328,7 +353,7 @@ export class Combat {
     this.addLog(buildLog(dmg), 'monster');
 
     if (wasStance) {
-      this.addLog('Iron Stance absorbs half the blow! Monster is stunned.', 'passive');
+      this.addLog('Iron Stance absorbs half the blow! Enemy is Staggered — follow up with Shattering Strike to Stun!', 'passive');
     }
 
     // Unbreakable Will: trigger when HP first crosses below 30%

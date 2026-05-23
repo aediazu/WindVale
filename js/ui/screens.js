@@ -37,7 +37,8 @@ function statusBadgesHtml(statuses, flags) {
 
   if (ms.vulnerable)   badges.push(`<span class="status-badge status-vulnerable">Vulnerable (${ms.vulnerable.turnsLeft}t)</span>`);
   if (ms.stunned)      badges.push(`<span class="status-badge status-stunned">Stunned</span>`);
-  if (ms.destabilized) badges.push(`<span class="status-badge status-destabilized">Destabilized</span>`);
+  if (ms.stagger)      badges.push(`<span class="status-badge status-stagger">Staggered</span>`);
+  if (ms.weakened)     badges.push(`<span class="status-badge status-weakened">Weakened (${ms.weakened.turnsLeft}t)</span>`);
   if (ms.ignited)      badges.push(`<span class="status-badge status-ignited">Ignited ${ms.ignited.turnsLeft}t · ${ms.ignited.burnDamage}/t</span>`);
   if (ms.frozen)       badges.push(`<span class="status-badge status-frozen">Frozen ×${ms.frozen.actionsLeft}</span>`);
 
