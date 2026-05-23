@@ -354,32 +354,62 @@ export function renderCombat(s) {
     const loadoutClasses = s._loadout
       .map(id => CLASSES.find(cl => cl.id === id))
       .filter(Boolean);
-    const switchBtns = loadoutClasses.map(cls => {
-      const isActive = cls.id === c._class?.id;
-      return `
-        <button class="class-switch-btn ${isActive ? 'class-switch-active' : ''}"
-          ${isActive || !canSwitch ? 'disabled' : `onclick="game.combatSwitchClass('${cls.id}')"`}>
+    const otherClasses = loadoutClasses.filter(cls => cls.id !== c._class?.id);
+
+    if (otherClasses.length === 0) {
+      // No second class configured — explain how to set it up
+      const allOthers = CLASSES.filter(cl => cl.id !== c._class?.id);
+      const suggestions = allOthers.map(cls => `
+        <div class="csb-suggestion">
           <span class="csb-icon">${cls.icon}</span>
           <div class="csb-info">
-            <div class="csb-name">${cls.name}${isActive ? ' <span class="csb-tag">Active</span>' : ''}</div>
+            <div class="csb-name">${cls.name}</div>
             <div class="csb-passive">${cls.description.split('.')[0]}.</div>
           </div>
-        </button>`;
-    }).join('');
-    actionArea = `
-      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:6px">Switch class — costs 2⚡ ${!canSwitch ? '(need more Impetus)' : ''}</div>
-      <div class="switch-list">${switchBtns}</div>
-      <button class="btn-back" onclick="game.combatSubScreen(null)">← Back</button>`;
+        </div>`).join('');
+      actionArea = `
+        <div class="switch-empty-msg">
+          <div style="font-size:0.85rem;color:var(--gold);font-weight:bold;margin-bottom:6px">🔀 Class Switching</div>
+          <div style="font-size:0.8rem;color:var(--muted);line-height:1.5;margin-bottom:10px">
+            Add a second class to your <strong style="color:var(--text)">Loadout</strong> before entering the dungeon to switch mid-combat.
+          </div>
+          <div style="font-size:0.75rem;color:var(--muted);margin-bottom:6px">Available classes:</div>
+          ${suggestions}
+        </div>
+        <button class="btn-back" onclick="game.combatSubScreen(null)">← Back</button>`;
+    } else {
+      const switchBtns = loadoutClasses.map(cls => {
+        const isActive = cls.id === c._class?.id;
+        return `
+          <button class="class-switch-btn ${isActive ? 'class-switch-active' : ''}"
+            ${isActive || !canSwitch ? 'disabled' : `onclick="game.combatSwitchClass('${cls.id}')"`}>
+            <span class="csb-icon">${cls.icon}</span>
+            <div class="csb-info">
+              <div class="csb-name">${cls.name}${isActive ? ' <span class="csb-tag">Active</span>' : ''}</div>
+              <div class="csb-passive">${cls.description.split('.')[0]}.</div>
+              <div style="font-size:0.7rem;color:var(--muted);margin-top:2px">
+                ❤ ${cls.stats.maxHp} · ⚔ ${cls.stats.baseAttack} · 🛡 ${cls.stats.baseDefense}
+              </div>
+            </div>
+          </button>`;
+      }).join('');
+      actionArea = `
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:6px">
+          Switch class — costs 2⚡
+          ${!canSwitch ? '<span style="color:var(--warning)"> · need more Impetus</span>' : ''}
+        </div>
+        <div class="switch-list">${switchBtns}</div>
+        <button class="btn-back" onclick="game.combatSubScreen(null)">← Back</button>`;
+    }
   } else {
-    const hasSwitch = s._loadout.length > 1;
+    const hasAlt = s._loadout.length > 1;
+    const switchDisabled = !hasAlt || combat.impetus < 2;
     actionArea = `
       <div class="skill-grid-combat">${skillGridHtml()}</div>
       <div class="combat-bottom-row">
         <button class="action-btn" onclick="game.combatSubScreen('items')">🎒 Items</button>
-        ${hasSwitch
-          ? `<button class="action-btn action-btn-switch" onclick="game.combatSubScreen('switch')"
-              ${combat.impetus < 2 ? 'disabled' : ''}>🔀 Switch [2⚡]</button>`
-          : ''}
+        <button class="action-btn action-btn-switch" onclick="game.combatSubScreen('switch')"
+          ${switchDisabled && hasAlt ? 'disabled' : ''}>🔀 Switch${hasAlt ? ' [2⚡]' : ''}</button>
         <button class="action-btn" onclick="game.combatFlee()">🏃 Flee</button>
       </div>`;
   }

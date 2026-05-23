@@ -941,3 +941,19 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   font-size: 0.85rem;
 }
 .action-btn-switch:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Switch empty state (no loadout configured) ── */
+.switch-empty-msg {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+.csb-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  opacity: 0.7;
+}
