@@ -16,10 +16,10 @@ export const DUNGEON_FLOORS = [
 ];
 
 const EVENTS = [
-  { id: 'treasure', name: 'Treasure Chest',   description: 'You find an abandoned chest.',         effect: { goldBonus: 25 } },
-  { id: 'fountain', name: 'Magic Fountain',    description: 'A fountain restores your strength.',   effect: { healPercent: 0.35 } },
-  { id: 'trap',     name: 'Trap',              description: 'You fall into a hidden trap!',          effect: { damage: 15 } },
-  { id: 'shrine',   name: 'Elemental Shrine',  description: 'A shrine restores your mana.',         effect: { mpPercent: 0.5 } },
+  { id: 'treasure', name: 'Treasure Chest',   description: 'You find an abandoned chest.',              effect: { goldBonus: 25 } },
+  { id: 'fountain', name: 'Magic Fountain',    description: 'A fountain restores your strength.',        effect: { healPercent: 0.35 } },
+  { id: 'trap',     name: 'Trap',              description: 'You fall into a hidden trap!',              effect: { damage: 15 } },
+  { id: 'shrine',   name: 'Ancient Shrine',    description: 'An ancient shrine restores your vitality.', effect: { healPercent: 0.25 } },
 ];
 
 function randomEvent() {

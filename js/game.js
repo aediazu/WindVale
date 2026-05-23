@@ -5,7 +5,7 @@ import { SHOP_ITEMS, WEAPON_UPGRADES, ARMOR_UPGRADES } from './data/items.js';
 import { LORE_NPCS } from './data/lore.js';
 import { CLASSES } from './data/classes.js';
 import {
-  renderHub, renderBetweenFloors, renderSkillTree, renderDungeon, renderCombat,
+  renderHub, renderBetweenFloors, renderDungeon, renderCombat,
   renderShop, renderInn, renderBlacksmith, renderQuests, renderLore,
   renderGameOver, renderVictory, renderClassSelect, renderLoadout,
 } from './ui/screens.js';
@@ -14,20 +14,19 @@ const SAVE_KEY = 'windvale_save';
 
 const game = {
   // ── State ─────────────────────────────────────────────────────────────────
-  character:              null,
-  dungeon:                null,
-  combat:                 null,
-  gold:                   50,
-  expeditionGold:         0,
-  currentFloor:           1,
-  bestFloor:              0,
-  _lastExpeditionGold:    0,
-  runNumber:              1,
-  screen:                 'hub',
-  notification:           null,
-  loreDialogue:           {},
-  _unlockedSkillsByClass: {},
-  _loadout:               [],
+  character:           null,
+  dungeon:             null,
+  combat:              null,
+  gold:                50,
+  expeditionGold:      0,
+  currentFloor:        1,
+  bestFloor:           0,
+  _lastExpeditionGold: 0,
+  runNumber:           1,
+  screen:              'hub',
+  notification:        null,
+  loreDialogue:        {},
+  _loadout:            [],
 
   // ── Boot ──────────────────────────────────────────────────────────────────
   init() {
@@ -88,7 +87,6 @@ const game = {
     const map = {
       hub:              () => renderHub(this),
       'between-floors': () => renderBetweenFloors(this),
-      'skill-tree':     () => renderSkillTree(this),
       'class-select':   () => renderClassSelect(this),
       'loadout':        () => renderLoadout(this),
       dungeon:          () => renderDungeon(this),
@@ -167,10 +165,6 @@ const game = {
       const healed = Math.floor(c.maxHp * ev.effect.healPercent);
       c.heal(healed);
       msg = `+${healed} HP restored`;
-    } else if (ev.effect.mpPercent) {
-      const restored = Math.floor(c.maxMp * ev.effect.mpPercent);
-      c.restoreMp(restored);
-      msg = `+${restored} MP restored`;
     } else if (ev.effect.damage) {
       const dmg = c.takeDamage(ev.effect.damage);
       msg = `-${dmg} HP`;
@@ -209,15 +203,10 @@ const game = {
   },
 
   // ── Combat actions ────────────────────────────────────────────────────────
-  combatAttack() {
-    this.combat.attack();
-    this.afterCombatAction();
-  },
-
-  combatSkill(skillId) {
+  combatUseSkill(skillId) {
     const skill = this.character.skills.find(sk => sk.id === skillId);
     if (!skill) return;
-    this.combat.useSkill(skill);
+    this.combat.executeSkill(skill);
     this.afterCombatAction();
   },
 
@@ -251,11 +240,11 @@ const game = {
           if (this.dungeon.isFinalFloor) {
             this.completeDungeon();
           } else {
-            if (leveled > 0) this.notification = `⬆ Level ${this.character.level}! +${leveled} skill point${leveled > 1 ? 's' : ''} available.`;
+            if (leveled > 0) this.notification = `⬆ Level ${this.character.level}! +10 Max HP, +1 ATK.`;
             this.navigate('between-floors');
           }
         } else {
-          if (leveled > 0) this.notification = `⬆ Level ${this.character.level}! +${leveled} skill point${leveled > 1 ? 's' : ''} available.`;
+          if (leveled > 0) this.notification = `⬆ Level ${this.character.level}! +10 Max HP, +1 ATK.`;
           this.navigate('dungeon');
         }
       }, 1600);
@@ -269,7 +258,6 @@ const game = {
   },
 
   returnAfterDeath() {
-    this._unlockedSkillsByClass = {};
     this.character = new Character();
     this.applyPersistentClass();
     this.applyPersistentGear();
@@ -279,17 +267,6 @@ const game = {
     this.currentFloor   = 1;
     this.save();
     this.navigate('hub');
-  },
-
-  // ── Skill tree ────────────────────────────────────────────────────────────
-  unlockSkill(skillId) {
-    if (!this.character.unlockSkill(skillId)) return;
-    const id = this.character._class?.id;
-    if (id) this._unlockedSkillsByClass[id] = {
-      skills:       [...this.character._unlockedSkills],
-      lockedBranch: this.character._lockedBranch,
-    };
-    this.render();
   },
 
   // ── Loadout management ───────────────────────────────────────────────────
@@ -309,40 +286,16 @@ const game = {
   combatSwitchClass(classId) {
     const cls = CLASSES.find(c => c.id === classId);
     if (!cls || classId === this.character._class?.id) return;
-    const curId = this.character._class?.id;
-    if (curId) {
-      this._unlockedSkillsByClass[curId] = {
-        skills:       [...this.character._unlockedSkills],
-        lockedBranch: this.character._lockedBranch,
-      };
-    }
-    const savedState = this._unlockedSkillsByClass[classId];
-    this.combat.switchClass(cls, savedState);
-    this.render();
+    if (this.combat.switchClass(cls)) this.afterCombatAction();
+    else this.render();
   },
 
   // ── Class selection ───────────────────────────────────────────────────────
   selectClass(classId) {
     const oldMainId = this.character._class?.id ?? null;
-    if (oldMainId) {
-      this._unlockedSkillsByClass[oldMainId] = {
-        skills:       [...this.character._unlockedSkills],
-        lockedBranch: this.character._lockedBranch,
-      };
-    }
     const cls = CLASSES.find(c => c.id === classId);
     if (!cls) return;
-    this.character.setClass(cls); // resets _unlockedSkills, _lockedBranch, element
-    const saved = this._unlockedSkillsByClass[classId];
-    if (saved) {
-      (saved.skills ?? []).forEach(id => this.character._unlockedSkills.add(id));
-      this.character._lockedBranch = saved.lockedBranch ?? null;
-      // Re-apply dragon transformation if previously committed
-      if (this.character._lockedBranch) {
-        const commitSkill = cls.skillTree.find(sk => sk.tier === 2 && sk.branch !== this.character._lockedBranch);
-        if (commitSkill?.transform === 'fire') this.character.element = 'Fire';
-      }
-    }
+    this.character.setClass(cls);
     this.applyPersistentGear();
     this._savedClassId = classId;
     // Ensure new class is in loadout; if full, replace old main slot
@@ -375,7 +328,7 @@ const game = {
     const item = SHOP_ITEMS.find(i => i.id === itemId);
     if (!item || this.gold < item.cost) return;
     this.gold -= item.cost;
-    this.character.addItem({ id: item.id, name: item.name, healHp: item.healHp, healMp: item.healMp });
+    this.character.addItem({ id: item.id, name: item.name, healHp: item.healHp, healImpetus: item.healImpetus });
     this.save();
     this.render();
   },

@@ -1,7 +1,7 @@
 import { SHOP_ITEMS, WEAPON_UPGRADES, ARMOR_UPGRADES } from '../data/items.js';
 import { QUESTS } from '../data/quests.js';
 import { LORE_NPCS } from '../data/lore.js';
-import { ELEMENT_ICON, ELEMENT_COLOR, getMultiplier } from '../data/elements.js';
+import { ELEMENT_ICON, ELEMENT_COLOR } from '../data/elements.js';
 import { CLASSES } from '../data/classes.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -18,16 +18,34 @@ function hpBar(current, max) {
     </div>`;
 }
 
-function mpBar(current, max) {
-  const pct = Math.max(0, current / max) * 100;
+function impetusRow(current, max) {
+  const pips = Array.from({ length: max }, (_, i) =>
+    `<span class="impetus-pip${i < current ? ' impetus-pip-full' : ''}"></span>`
+  ).join('');
   return `
-    <div class="stat-row">
-      <span class="stat-label">MP</span>
-      <div class="bar-wrap bar-mp-bg">
-        <div class="bar-fill bar-fill-mp" style="width:${pct}%"></div>
-      </div>
-      <span class="stat-value">${current}/${max}</span>
+    <div class="impetus-row">
+      <span class="impetus-label">⚡ Impetus</span>
+      <div class="impetus-pips">${pips}</div>
+      <span class="impetus-label">${current}/${max}</span>
     </div>`;
+}
+
+function statusBadgesHtml(statuses, flags) {
+  const badges = [];
+  const ms = statuses?.monster ?? {};
+  const ps = statuses?.player ?? {};
+
+  if (ms.vulnerable)   badges.push(`<span class="status-badge status-vulnerable">Vulnerable (${ms.vulnerable.turnsLeft}t)</span>`);
+  if (ms.stunned)      badges.push(`<span class="status-badge status-stunned">Stunned</span>`);
+  if (ms.destabilized) badges.push(`<span class="status-badge status-destabilized">Destabilized</span>`);
+  if (ms.ignited)      badges.push(`<span class="status-badge status-ignited">Ignited ${ms.ignited.turnsLeft}t · ${ms.ignited.burnDamage}/t</span>`);
+  if (ms.frozen)       badges.push(`<span class="status-badge status-frozen">Frozen ×${ms.frozen.actionsLeft}</span>`);
+
+  if (ps.fury)         badges.push(`<span class="status-badge status-fury">Fury (${ps.fury.turnsLeft}t)</span>`);
+  if (flags?.stance)   badges.push(`<span class="status-badge status-stance">Iron Stance</span>`);
+  if (flags?.veil)     badges.push(`<span class="status-badge status-veil">Arcane Veil</span>`);
+
+  return badges.length ? `<div class="status-badges">${badges.join('')}</div>` : '';
 }
 
 function elBadge(element) {
@@ -53,27 +71,8 @@ function progressBar(done, total) {
     </div>`;
 }
 
-function previewAttack(c, m) {
-  const minDmg = Math.max(1, Math.floor(c.attack * 0.9) - m.defense);
-  const maxDmg = Math.max(1, Math.floor(c.attack * 1.1) - m.defense);
-  return { minDmg, maxDmg };
-}
-
-function previewSkill(c, m, sk, surgeReady) {
-  if (sk.buff) return { type: 'buff', bonus: sk.buff.bonusDamage };
-  if (sk.selfHeal && !sk.power) return { type: 'heal', value: sk.selfHeal };
-  let power = sk.power;
-  if (surgeReady && c.classPassive === 'arcane_surge') power *= 1.6;
-  if (c.classPassive === 'earthbond' && sk.element === 'Earth') power *= 1.2;
-  let mult = getMultiplier(sk.element, m.element);
-  if (c.classPassive === 'dragonhunter' && m.element === 'Fire') mult *= 1.25;
-  const dmg = Math.max(1, Math.floor(c.attack * power * mult) - m.defense);
-  return { type: 'damage', value: dmg, mult };
-}
-
 function charMiniStats(c) {
   const xpPct = Math.min(100, (c.xp / c.xpToNextLevel) * 100);
-  const pts = c.availableSkillPoints;
   const itemsLeft = c.items.reduce((sum, i) => sum + i.quantity, 0);
   return `
     <div class="char-mini-stats">
@@ -81,49 +80,12 @@ function charMiniStats(c) {
       <span>⚔ ${c.attack}</span>
       <span>🛡 ${c.defense}</span>
       <span>💊 ${itemsLeft}</span>
-      ${pts > 0 ? `<span style="color:var(--warning);font-weight:bold">+${pts}pts!</span>` : ''}
     </div>
     <div class="char-mini-xp">
       <div class="progress-track" style="height:3px">
         <div class="progress-fill" style="width:${xpPct}%"></div>
       </div>
       <span>${c.xp}/${c.xpToNextLevel} XP</span>
-    </div>`;
-}
-
-// ── Skill tree helpers ────────────────────────────────────────────────────────
-
-function skillNodeHtml(sk, state, classSkillTree) {
-  const isUnlocked  = state === 'unlocked';
-  const isAvailable = state === 'available';
-  let effectLine;
-  if (sk.buff) {
-    effectLine = `Summons ${sk.buff.label} · +${sk.buff.bonusDamage} dmg/action · ${sk.mpCost} MP`;
-  } else if (sk.selfHeal && !sk.power) {
-    effectLine = `Heals ${sk.selfHeal} HP · ${sk.mpCost} MP`;
-  } else if (sk.selfHeal && sk.power) {
-    effectLine = `${sk.power}× ATK + heals ${sk.selfHeal} HP · ${sk.mpCost} MP`;
-  } else {
-    effectLine = `${sk.power}× ATK${sk.drain ? ` + drain ${Math.round(sk.drain * 100)}%` : ''} · ${sk.mpCost} MP`;
-  }
-  const reqNames = sk.requires.map(id => {
-    const found = classSkillTree.find(s => s.id === id);
-    return found ? found.name : id;
-  }).join(', ');
-  return `
-    <div class="skill-node ${isUnlocked ? 'skill-node-unlocked' : isAvailable ? 'skill-node-available' : 'skill-node-locked'}"
-      ${isAvailable ? `onclick="game.unlockSkill('${sk.id}')"` : ''}>
-      <div class="skill-node-header">
-        <span>${ELEMENT_ICON[sk.element]} ${sk.name}</span>
-        ${isUnlocked
-          ? '<span style="color:var(--gold)">✓</span>'
-          : isAvailable
-            ? '<span class="skill-node-cost">1 pt →</span>'
-            : '<span style="opacity:0.5">🔒</span>'}
-      </div>
-      <div class="skill-node-effect">${effectLine}</div>
-      <div class="skill-node-desc">${sk.description}</div>
-      ${sk.requires.length ? `<div style="font-size:0.72rem;color:var(--muted)">Requires: ${reqNames}</div>` : ''}
     </div>`;
 }
 
@@ -135,14 +97,12 @@ export function renderHub(s) {
   const notif = s.notification ? `<div class="notification">${s.notification}</div>` : '';
   const cls = c._class;
   const classLine = cls
-    ? `<div style="font-size:0.75rem;color:var(--gold);padding-top:4px;">${cls.icon} ${cls.name} <span style="color:var(--muted)">· ${cls.passiveDesc}</span></div>`
+    ? `<div style="font-size:0.75rem;color:var(--gold);padding-top:4px;">${cls.icon} ${cls.name}</div>`
     : `<div style="font-size:0.75rem;color:var(--warning);padding-top:4px;">⚠ No class selected — choose one below</div>`;
   const xpPct = c.xpToNextLevel > 0 ? (c.xp / c.xpToNextLevel) * 100 : 0;
-  const pts = c.availableSkillPoints;
   const levelLine = `
-    <div style="font-size:0.75rem;color:var(--muted);padding-top:2px;display:flex;gap:12px;align-items:center">
+    <div style="font-size:0.75rem;color:var(--muted);padding-top:2px;">
       <span>Lv.${c.level} · ${c.xp}/${c.xpToNextLevel} XP</span>
-      ${pts > 0 ? `<span style="color:var(--warning);font-weight:bold">${pts} pt${pts > 1 ? 's' : ''} unspent!</span>` : ''}
     </div>
     <div class="progress-track" style="height:4px;margin-top:3px">
       <div class="progress-fill" style="width:${xpPct}%"></div>
@@ -158,7 +118,6 @@ export function renderHub(s) {
 
       <div class="stat-section">
         ${hpBar(c.hp, c.maxHp)}
-        ${mpBar(c.mp, c.maxMp)}
         <div style="font-size:0.75rem;color:var(--muted);display:flex;gap:16px;padding-top:2px;">
           <span>⚔ ATK ${c.attack}</span>
           <span>🛡 DEF ${c.defense}</span>
@@ -172,9 +131,6 @@ export function renderHub(s) {
       <div class="hub-grid">
         <button class="hub-btn hub-btn-primary" onclick="game.enterDungeon()">
           ⚔ Enter the Dungeon
-        </button>
-        <button class="hub-btn" onclick="game.navigate('skill-tree')">
-          <span>🌟</span>Skill Tree
         </button>
         <button class="hub-btn" onclick="game.navigate('shop')">
           <span>🏪</span>Shop
@@ -212,7 +168,6 @@ export function renderBetweenFloors(s) {
     : '';
 
   const xpPct = Math.min(100, (c.xp / c.xpToNextLevel) * 100);
-  const pts = c.availableSkillPoints;
   const itemsLeft = c.items.reduce((sum, i) => sum + i.quantity, 0);
   const hpPct = Math.round(c.hpPercent() * 100);
 
@@ -234,19 +189,14 @@ export function renderBetweenFloors(s) {
       <div class="btf-char-panel">
         <div class="btf-char-header">
           ${c._class ? `${c._class.icon} ${c._class.name}` : 'Hero'} · Lv.${c.level}
-          ${pts > 0 ? `<span class="btf-pts-badge">${pts} pt${pts > 1 ? 's' : ''} to spend</span>` : ''}
         </div>
         <div style="margin:6px 0 2px">
           ${hpBar(c.hp, c.maxHp)}
-        </div>
-        <div style="margin-bottom:6px">
-          ${mpBar(c.mp, c.maxMp)}
         </div>
         <div class="btf-stat-row">
           <span>⚔ ATK ${c.attack}</span>
           <span>🛡 DEF ${c.defense}</span>
           <span>💊 Items: ${itemsLeft}</span>
-          <span>✨ Skills: ${c._unlockedSkills.size}</span>
         </div>
         <div style="margin-top:6px">
           <div style="font-size:0.72rem;color:var(--muted);margin-bottom:2px">XP · ${c.xp} / ${c.xpToNextLevel}</div>
@@ -282,10 +232,9 @@ export function renderDungeon(s) {
       <div class="room-name">Adventure complete!</div></div>`;
   } else if (room.type === 'event') {
     const ev = room.event;
-    const effectDesc = ev.effect.goldBonus  ? `+${ev.effect.goldBonus} gold (at risk)`
-      : ev.effect.healPercent               ? `Restores ${Math.round(ev.effect.healPercent*100)}% HP`
-      : ev.effect.mpPercent                 ? `Restores ${Math.round(ev.effect.mpPercent*100)}% MP`
-      : ev.effect.damage                    ? `-${ev.effect.damage} HP`
+    const effectDesc = ev.effect.goldBonus   ? `+${ev.effect.goldBonus} gold (at risk)`
+      : ev.effect.healPercent                ? `Restores ${Math.round(ev.effect.healPercent * 100)}% HP`
+      : ev.effect.damage                     ? `-${ev.effect.damage} HP`
       : '';
     roomContent = `
       <div class="room-card">
@@ -318,7 +267,6 @@ export function renderDungeon(s) {
       ${progressBar(prog.done, prog.total)}
       <div class="stat-section" style="gap:6px">
         ${hpBar(s.character.hp, s.character.maxHp)}
-        ${mpBar(s.character.mp, s.character.maxMp)}
         ${charMiniStats(s.character)}
       </div>
       ${roomContent}
@@ -335,90 +283,104 @@ export function renderCombat(s) {
   const logEntries = combat.log.slice().reverse().map(e =>
     `<div class="log-entry log-${e.type}">${e.message}</div>`).join('');
 
+  // ── Monster status badges
+  const monsterBadges = statusBadgesHtml(combat.statuses, null);
+
+  // ── Player status badges
+  const playerBadges = statusBadgesHtml(
+    { player: combat.statuses?.player ?? {} },
+    { stance: combat.stanceActive, veil: combat.veilActive }
+  );
+
+  // ── Skill grid
+  function skillGridHtml() {
+    return c.skills.map(sk => {
+      if (sk.passive) {
+        // Unbreakable Will state
+        let stateLabel, stateClass;
+        if (!combat.voluntasUsed && !combat.deathShield) {
+          stateLabel = 'Ready'; stateClass = 'voluntas-ready';
+        } else if (combat.deathShield) {
+          stateLabel = 'Shield Active'; stateClass = 'voluntas-active';
+        } else {
+          stateLabel = 'Spent'; stateClass = 'voluntas-spent';
+        }
+        return `
+          <div class="skill-passive-badge ${stateClass}">
+            <div>
+              <div class="skill-btn-name">${sk.name}</div>
+              <div class="skill-btn-preview">${sk.preview}</div>
+            </div>
+            <span style="font-size:0.7rem;font-weight:bold">${stateLabel}</span>
+          </div>`;
+      }
+      const canUse = combat.canUseSkill(sk);
+      const costBadge = sk.impetusRequires > 0
+        ? `<span class="skill-btn-cost">${sk.impetusRequires}⚡</span>`
+        : '';
+      const elemIcon = ELEMENT_ICON[sk.element] ?? '';
+      return `
+        <button class="skill-btn-combat" onclick="game.combatUseSkill('${sk.id}')"
+          ${!canUse ? 'disabled' : ''}>
+          <div class="skill-btn-name">${elemIcon} ${sk.name}</div>
+          <div class="skill-btn-preview">${sk.preview}</div>
+          ${costBadge}
+        </button>`;
+    }).join('');
+  }
+
   let actionArea = '';
   if (done) {
     actionArea = `<div style="text-align:center;font-size:0.9rem;color:var(--muted)">Processing...</div>`;
-  } else if (combat.subScreen === 'skills') {
-    const skillBtns = c.skills.map(sk => {
-      const preview = previewSkill(c, m, sk, combat.surgeReady);
-      let previewSpan;
-      if (preview.type === 'buff') {
-        previewSpan = `<span class="dmg-preview" style="color:var(--success)">+${preview.bonus}/turn</span>`;
-      } else if (preview.type === 'heal') {
-        previewSpan = `<span class="dmg-preview dmg-heal">+${preview.value} HP</span>`;
-      } else {
-        const effClass = preview.mult >= 1.5 ? 'dmg-super'
-                       : preview.mult <= 0.5 ? 'dmg-resisted'
-                       : preview.mult < 1.0  ? 'dmg-weak' : '';
-        previewSpan = `<span class="dmg-preview ${effClass}">${preview.value}</span>`;
-      }
-      return `
-        <button class="skill-btn" onclick="game.combatSkill('${sk.id}')"
-          ${!c.canUseSkill(sk) ? 'disabled' : ''}>
-          <span>${ELEMENT_ICON[sk.element]} ${sk.name}</span>
-          <span style="display:flex;align-items:center;gap:6px">
-            ${previewSpan}
-            <span class="skill-cost">${sk.mpCost} MP</span>
-          </span>
-        </button>`;
-    }).join('');
-    actionArea = `
-      <div class="skill-list">${skillBtns}</div>
-      <button class="btn-back" onclick="game.combatSubScreen(null)">← Back</button>`;
   } else if (combat.subScreen === 'items') {
     if (c.items.length === 0) {
       actionArea = `<div style="text-align:center;color:var(--muted);font-size:0.9rem">No items.</div>
         <button class="btn-back" onclick="game.combatSubScreen(null)">← Back</button>`;
     } else {
-      const itemBtns = c.items.map(it => `
-        <button class="item-btn" onclick="game.combatItem('${it.id}')">
-          <span>${it.name} ×${it.quantity}</span>
-          <span style="font-size:0.8rem;color:var(--muted)">${it.healHp ? `+${it.healHp} HP` : it.healMp ? `+${it.healMp} MP` : ''}</span>
-        </button>`).join('');
+      const itemBtns = c.items.map(it => {
+        const desc = it.healHp ? `+${it.healHp} HP` : it.healImpetus ? `+${it.healImpetus}⚡` : '';
+        return `
+          <button class="item-btn" onclick="game.combatItem('${it.id}')">
+            <span>${it.name} ×${it.quantity}</span>
+            <span style="font-size:0.8rem;color:var(--muted)">${desc}</span>
+          </button>`;
+      }).join('');
       actionArea = `
         <div class="item-list">${itemBtns}</div>
         <button class="btn-back" onclick="game.combatSubScreen(null)">← Back</button>`;
     }
   } else if (combat.subScreen === 'switch') {
+    const canSwitch = combat.impetus >= 2;
     const loadoutClasses = s._loadout
       .map(id => CLASSES.find(cl => cl.id === id))
       .filter(Boolean);
     const switchBtns = loadoutClasses.map(cls => {
       const isActive = cls.id === c._class?.id;
-      const savedState = s._unlockedSkillsByClass[cls.id];
-      const skillCount = isActive ? c._unlockedSkills.size : (savedState ? (savedState.skills?.length ?? 0) : 0);
       return `
         <button class="class-switch-btn ${isActive ? 'class-switch-active' : ''}"
-          ${isActive || combat._switchedThisTurn ? 'disabled' : `onclick="game.combatSwitchClass('${cls.id}')"`}>
+          ${isActive || !canSwitch ? 'disabled' : `onclick="game.combatSwitchClass('${cls.id}')"`}>
           <span class="csb-icon">${cls.icon}</span>
           <div class="csb-info">
             <div class="csb-name">${cls.name}${isActive ? ' <span class="csb-tag">Active</span>' : ''}</div>
-            <div class="csb-passive">${cls.passiveDesc}</div>
-            <div class="csb-skills">${skillCount} skill${skillCount !== 1 ? 's' : ''} unlocked</div>
+            <div class="csb-passive">${cls.description.split('.')[0]}.</div>
           </div>
         </button>`;
     }).join('');
     actionArea = `
-      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:6px">Switch to...</div>
+      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:6px">Switch class — costs 2⚡ ${!canSwitch ? '(need more Impetus)' : ''}</div>
       <div class="switch-list">${switchBtns}</div>
       <button class="btn-back" onclick="game.combatSubScreen(null)">← Back</button>`;
   } else {
-    const { minDmg, maxDmg } = previewAttack(c, m);
-    const attackRange = minDmg === maxDmg ? `${minDmg}` : `${minDmg}–${maxDmg}`;
     const hasSwitch = s._loadout.length > 1;
     actionArea = `
-      <div class="action-grid">
-        <button class="action-btn action-btn-attack" onclick="game.combatAttack()">
-          ⚔️ Attack
-          <span class="dmg-preview">${attackRange}</span>
-        </button>
-        <button class="action-btn" onclick="game.combatSubScreen('skills')">✨ Skills</button>
+      <div class="skill-grid-combat">${skillGridHtml()}</div>
+      <div class="combat-bottom-row">
         <button class="action-btn" onclick="game.combatSubScreen('items')">🎒 Items</button>
         ${hasSwitch
           ? `<button class="action-btn action-btn-switch" onclick="game.combatSubScreen('switch')"
-              ${combat._switchedThisTurn ? 'disabled' : ''}>🔀 Switch</button>`
-          : `<button class="action-btn" onclick="game.combatFlee()">🏃 Flee</button>`}
-        ${hasSwitch ? `<button class="action-btn" onclick="game.combatFlee()" style="grid-column:span 2">🏃 Flee</button>` : ''}
+              ${combat.impetus < 2 ? 'disabled' : ''}>🔀 Switch [2⚡]</button>`
+          : ''}
+        <button class="action-btn" onclick="game.combatFlee()">🏃 Flee</button>
       </div>`;
   }
 
@@ -430,7 +392,7 @@ export function renderCombat(s) {
         <div class="stat-row">
           <span class="stat-label">HP</span>
           <div class="bar-wrap bar-hp-bg" style="height:18px">
-            <div class="bar-fill bar-fill-hp" style="width:${m.hpPercent()*100}%"></div>
+            <div class="bar-fill bar-fill-hp" style="width:${m.hpPercent() * 100}%"></div>
           </div>
           <span class="stat-value">${m.hp}/${m.maxHp}</span>
         </div>
@@ -438,15 +400,15 @@ export function renderCombat(s) {
           <span>⚔ ${m.attack} ATK</span>
           <span>🛡 ${m.defense} DEF</span>
         </div>
+        ${monsterBadges}
       </div>
 
       <div class="stat-section">
         ${hpBar(c.hp, c.maxHp)}
-        ${mpBar(c.mp, c.maxMp)}
-        ${charMiniStats(s.character)}
-        ${c._class ? `<div class="active-class-badge">${c._class.icon} ${c._class.name}${s._loadout.length > 1 && !combat._switchedThisTurn ? ' · <span style="color:var(--muted);font-size:0.7rem;font-weight:normal">tap Switch to change</span>' : combat._switchedThisTurn ? ' · <span style="color:var(--muted);font-size:0.7rem;font-weight:normal">switched</span>' : ''}</div>` : ''}
-        ${combat.persistentBuff ? `<div class="active-buff">🔮 ${combat.persistentBuff.label} · +${combat.persistentBuff.bonusDamage} dmg/action</div>` : ''}
-        ${combat.furyStacks > 0 ? `<div class="active-buff" style="color:#f6ad55">⚔ Battle Fury · +${combat.furyBonus} ATK (${combat.furyStacks} stack${combat.furyStacks > 1 ? 's' : ''})</div>` : ''}
+        ${impetusRow(combat.impetus, combat.maxImpetus)}
+        ${playerBadges}
+        ${charMiniStats(c)}
+        ${c._class ? `<div class="active-class-badge">${c._class.icon} ${c._class.name}</div>` : ''}
       </div>
 
       <div class="combat-log">${logEntries || '<div class="log-entry log-info">Combat begins!</div>'}</div>
@@ -483,7 +445,7 @@ export function renderShop(s) {
 export function renderInn(s) {
   const c = s.character;
   const cost = Math.floor(c.maxHp * 0.5);
-  const full = c.hp === c.maxHp && c.mp === c.maxMp;
+  const full = c.hp === c.maxHp;
 
   return `
     <div class="screen">
@@ -498,13 +460,12 @@ export function renderInn(s) {
       </div>
       <div class="stat-section">
         ${hpBar(c.hp, c.maxHp)}
-        ${mpBar(c.mp, c.maxMp)}
       </div>
       ${full
-        ? `<div class="notification">Already at full HP and MP.</div>`
+        ? `<div class="notification">Already at full HP.</div>`
         : `<button class="btn-primary" onclick="game.restAtInn()"
             ${s.gold < cost ? 'disabled' : ''}>
-            Rest — ${cost}⚜ (Restore all HP/MP)
+            Rest — ${cost}⚜ (Restore all HP)
           </button>
           ${s.gold < cost ? '<div class="notification warn">Not enough gold.</div>' : ''}`}
     </div>`;
@@ -580,7 +541,7 @@ export function renderQuests(s) {
 }
 
 export function renderLore(s) {
-  const npcs = LORE_NPCS.map((npc, i) => {
+  const npcs = LORE_NPCS.map(npc => {
     const dialogueIdx = s.loreDialogue?.[npc.id] ?? 0;
     return `
       <div class="npc-card" onclick="game.advanceLore('${npc.id}')">
@@ -642,92 +603,6 @@ export function renderVictory(s) {
     </div>`;
 }
 
-export function renderSkillTree(s) {
-  const c   = s.character;
-  const cls = c._class;
-  if (!cls) {
-    return `
-      <div class="screen">
-        <div class="top-bar">
-          <button class="btn-back" onclick="game.navigate('hub')">← Back</button>
-          <span style="color:var(--gold)">🌟 Skill Tree</span>
-        </div>
-        <div class="card"><div class="card-body">Select a class first to access the skill tree.</div></div>
-      </div>`;
-  }
-
-  const tree = cls.skillTree;
-  const pts  = c.availableSkillPoints;
-  const xpPct = Math.min(100, (c.xp / c.xpToNextLevel) * 100);
-
-  const branchData = cls.branches ?? { a: { name: 'Path A', lore: '' }, b: { name: 'Path B', lore: '' } };
-
-  function branchStatus(branch) {
-    if (!c._lockedBranch) return '';
-    if (c._lockedBranch === branch) return 'locked';
-    return 'chosen';
-  }
-
-  function branchHeader(branch) {
-    const { name, lore } = branchData[branch];
-    const status = branchStatus(branch);
-    const statusTag = status === 'locked'
-      ? '<span class="branch-status-tag branch-status-locked">🔒 Path Closed</span>'
-      : status === 'chosen'
-        ? '<span class="branch-status-tag branch-status-chosen">✓ Your Path</span>'
-        : '';
-    return `
-      <div class="branch-header-block ${status === 'locked' ? 'branch-block-locked' : status === 'chosen' ? 'branch-block-chosen' : ''}">
-        <div class="branch-title-row">
-          <span class="branch-title">${name}</span>
-          ${statusTag}
-        </div>
-        <div class="branch-lore">${lore}</div>
-      </div>`;
-  }
-
-  function renderBranch(branch) {
-    const skills = tree.filter(sk => sk.branch === branch).sort((a, b) => a.tier - b.tier);
-    const nodes = skills.map(sk => {
-      const unlocked  = c._unlockedSkills.has(sk.id);
-      const available = !unlocked && c.canUnlockSkill(sk.id);
-      return skillNodeHtml(sk, unlocked ? 'unlocked' : available ? 'available' : 'locked', tree);
-    }).join('');
-    return `
-      <div class="branch-section">
-        ${branchHeader(branch)}
-        <div style="display:flex;flex-direction:column;gap:8px">${nodes}</div>
-      </div>`;
-  }
-
-  return `
-    <div class="screen">
-      <div class="top-bar">
-        <button class="btn-back" onclick="game.navigate('hub')">← Back</button>
-        <span style="color:var(--gold)">🌟 Skill Tree</span>
-        <span class="gold-badge">⚜ ${s.gold}</span>
-      </div>
-      <div class="stat-section" style="gap:5px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="color:var(--gold);font-weight:bold">${cls.icon} ${cls.name}</span>
-          <span style="font-size:0.85rem">Lv.${c.level} ·
-            ${pts > 0
-              ? `<strong style="color:var(--warning)">${pts} pt${pts > 1 ? 's' : ''} to spend</strong>`
-              : '<span style="color:var(--muted)">no points</span>'}
-          </span>
-        </div>
-        <div style="font-size:0.75rem;color:var(--muted)">${c.xp} / ${c.xpToNextLevel} XP to next level</div>
-        <div class="progress-track" style="height:6px">
-          <div class="progress-fill" style="width:${xpPct}%"></div>
-        </div>
-        ${c.element !== 'Neutral' ? `<div style="font-size:0.75rem;color:#f6ad55;margin-top:2px">🔥 Dragon Path active — you are Fire element</div>` : ''}
-        ${!c._lockedBranch ? '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">Unlock a tier-2 skill to commit to that path — the other will close forever.</div>' : ''}
-      </div>
-      ${renderBranch('a')}
-      ${renderBranch('b')}
-    </div>`;
-}
-
 export function renderLoadout(s) {
   const currentId = s.character._class?.id ?? null;
   const loadout = s._loadout;
@@ -737,8 +612,11 @@ export function renderLoadout(s) {
     const isMain    = cls.id === currentId;
     const inLoadout = loadout.includes(cls.id);
     const atMax     = totalActive >= 3 && !inLoadout;
-    const savedState = s._unlockedSkillsByClass[cls.id];
-    const skillCount = isMain ? s.character._unlockedSkills.size : (savedState ? (savedState.skills?.length ?? 0) : 0);
+
+    const passiveSkill = cls.skills.find(sk => sk.passive);
+    const passiveLine  = passiveSkill
+      ? `<div class="loadout-card-passive">${passiveSkill.name}: ${passiveSkill.preview}</div>`
+      : `<div class="loadout-card-passive">${cls.description.split('.')[0]}.</div>`;
 
     let actionBtn;
     if (isMain) {
@@ -756,8 +634,7 @@ export function renderLoadout(s) {
           <span class="loadout-card-icon">${cls.icon}</span>
           <div>
             <div class="loadout-card-name">${cls.name}</div>
-            <div class="loadout-card-passive">${cls.passiveDesc}</div>
-            <div class="loadout-card-info">${skillCount} skill${skillCount !== 1 ? 's' : ''} unlocked</div>
+            ${passiveLine}
           </div>
         </div>
         ${actionBtn}
@@ -773,7 +650,7 @@ export function renderLoadout(s) {
       </div>
       <div class="card">
         <div class="card-body">
-          Choose up to 3 classes for combat. During battle, switch freely on your turn — stats, passives and unlocked skills swap instantly. Only one switch per monster turn.
+          Choose up to 3 classes for combat. Switch during battle for 2⚡ — stats and skills swap instantly. Impetus and buffs carry over.
           <br><strong style="color:var(--warning)">${totalActive}/3 active.</strong>
         </div>
       </div>
@@ -786,25 +663,23 @@ export function renderClassSelect(s) {
 
   const cards = CLASSES.map(cls => {
     const isSelected = cls.id === currentId;
-    const skillNames = cls.skillTree.filter(sk => sk.tier === 1).map(sk => sk.name).join(', ');
-    const { maxHp, maxMp, baseAttack, baseDefense } = cls.stats;
+    const skillList = cls.skills.map(sk => sk.name).join(', ');
+    const { maxHp, baseAttack, baseDefense } = cls.stats;
     return `
       <div class="class-card${isSelected ? ' class-card-selected' : ''}" onclick="game.selectClass('${cls.id}')">
         <div class="class-card-header">
           <span class="class-card-icon">${cls.icon}</span>
           <div>
             <div class="class-card-name">${cls.name}${isSelected ? ' <span class="class-active-tag">Active</span>' : ''}</div>
-            <div class="class-card-passive">${cls.passiveDesc}</div>
           </div>
         </div>
         <div class="class-card-desc">${cls.description}</div>
         <div class="class-card-stats">
           <span>❤ ${maxHp}</span>
-          <span>💧 ${maxMp}</span>
           <span>⚔ ${baseAttack}</span>
           <span>🛡 ${baseDefense}</span>
         </div>
-        <div class="class-card-skills">Skills: ${skillNames} (${cls.skillTree.length} in tree)</div>
+        <div class="class-card-skills">Skills: ${skillList}</div>
       </div>`;
   }).join('');
 
@@ -816,7 +691,7 @@ export function renderClassSelect(s) {
         <span class="gold-badge">⚜ ${s.gold}</span>
       </div>
       <div class="card">
-        <div class="card-body">Your class persists between runs. Switching resets HP/MP to the new class values but keeps your gear and gold.</div>
+        <div class="card-body">Your class persists between runs. Switching resets HP to the new class values but keeps your gear and gold.</div>
       </div>
       ${cards}
     </div>`;

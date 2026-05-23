@@ -1,8 +1,8 @@
 export const SHOP_ITEMS = [
   { id: 'potion',    name: 'Potion',      cost: 20,  healHp: 30,  description: 'Restores 30 HP' },
   { id: 'hi_potion', name: 'Hi-Potion',   cost: 45,  healHp: 70,  description: 'Restores 70 HP' },
-  { id: 'ether',     name: 'Ether',       cost: 25,  healMp: 20,  description: 'Restores 20 MP' },
-  { id: 'hi_ether',  name: 'Hi-Ether',    cost: 50,  healMp: 45,  description: 'Restores 45 MP' },
+  { id: 'ether',     name: 'Ether',       cost: 25,  healImpetus: 1,  description: 'Restores 1 Impetus' },
+  { id: 'hi_ether',  name: 'Hi-Ether',    cost: 50,  healImpetus: 2,  description: 'Restores 2 Impetus' },
 ];
 
 // Upgrade tiers: index = upgrade level (0=base already equipped, 1,2,3 = upgrades)

@@ -846,4 +846,98 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ── Combat: switch action button ── */
 .action-btn-switch { border-color: var(--success); }
+
+/* ── Impetus bar ── */
+.impetus-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+.impetus-pips { display: flex; gap: 4px; }
+.impetus-pip {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  background: transparent;
+}
+.impetus-pip-full { background: var(--gold); }
+.impetus-label { font-size: 0.72rem; color: var(--gold); font-weight: bold; }
+
+/* ── Status effect badges ── */
+.status-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.status-badge {
+  font-size: 0.68rem;
+  padding: 2px 7px;
+  border-radius: 8px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+.status-vulnerable   { background: #d69e2e; color: #000; }
+.status-stunned      { background: #ed8936; color: #000; }
+.status-destabilized { background: #e53e3e; color: #fff; }
+.status-ignited      { background: #c05621; color: #fff; }
+.status-frozen       { background: #3182ce; color: #fff; }
+.status-fury         { background: #c53030; color: #fff; }
+.status-stance       { background: #276749; color: #fff; }
+.status-veil         { background: #4a5568; color: #fff; }
+
+/* ── Combat skill grid ── */
+.skill-grid-combat {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.skill-btn-combat {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  transition: filter 0.15s, transform 0.1s;
+}
+.skill-btn-combat:active { transform: scale(0.97); filter: brightness(0.85); }
+.skill-btn-combat:disabled { opacity: 0.4; cursor: default; }
+.skill-btn-name    { font-weight: bold; font-size: 0.85rem; }
+.skill-btn-preview { font-size: 0.7rem; color: var(--muted); }
+.skill-btn-cost    { font-size: 0.7rem; color: var(--gold); font-weight: bold; }
+
+/* ── Passive skill badge (Unbreakable Will) ── */
+.skill-passive-badge {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+.voluntas-ready  { border-color: var(--success); }
+.voluntas-active { border-color: #e53e3e; }
+.voluntas-spent  { opacity: 0.4; }
+
+/* ── Combat bottom row (items / switch / flee) ── */
+.combat-bottom-row {
+  display: flex;
+  gap: 8px;
+}
+.combat-bottom-row .action-btn {
+  flex: 1;
+  padding: 13px 6px;
+  font-size: 0.85rem;
+}
 .action-btn-switch:disabled { opacity: 0.4; cursor: default; }
