@@ -35,15 +35,13 @@ function statusBadgesHtml(statuses, flags) {
   const ms = statuses?.monster ?? {};
   const ps = statuses?.player ?? {};
 
-  if (ms.vulnerable)   badges.push(`<span class="status-badge status-vulnerable">Vulnerable (${ms.vulnerable.turnsLeft}t)</span>`);
+  if (ms.vulnerable)   badges.push(`<span class="status-badge status-vulnerable">Vulnerable</span>`);
   if (ms.stunned)      badges.push(`<span class="status-badge status-stunned">Stunned</span>`);
-  if (ms.stagger)      badges.push(`<span class="status-badge status-stagger">Staggered</span>`);
-  if (ms.weakened)     badges.push(`<span class="status-badge status-weakened">Weakened (${ms.weakened.turnsLeft}t)</span>`);
   if (ms.ignited)      badges.push(`<span class="status-badge status-ignited">Ignited ${ms.ignited.turnsLeft}t · ${ms.ignited.burnDamage}/t</span>`);
   if (ms.frozen)       badges.push(`<span class="status-badge status-frozen">Frozen ×${ms.frozen.actionsLeft}</span>`);
 
   if (ps.fury)         badges.push(`<span class="status-badge status-fury">Fury (${ps.fury.turnsLeft}t)</span>`);
-  if (flags?.stance)   badges.push(`<span class="status-badge status-stance">Iron Stance</span>`);
+  if (flags?.stance)   badges.push(`<span class="status-badge status-stance">Brace</span>`);
   if (flags?.veil)     badges.push(`<span class="status-badge status-veil">Arcane Veil</span>`);
 
   return badges.length ? `<div class="status-badges">${badges.join('')}</div>` : '';
