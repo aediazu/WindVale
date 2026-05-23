@@ -1,57 +1,210 @@
-import { getMultiplier, effectivenessText } from '../data/elements.js';
+import { ELEMENTS, getMultiplier, effectivenessText } from '../data/elements.js';
 
 export class Combat {
   constructor(character, monster) {
-    this.character = character;
-    this.monster   = monster;
-    this.log       = [];
-    this.state     = 'active'; // 'active' | 'won' | 'lost' | 'fled'
-    this.goldEarned = 0;
-    this.subScreen = null; // null | 'skills' | 'items'
+    this.character    = character;
+    this.monster      = monster;
+    this.log          = [];
+    this.state        = 'active'; // 'active' | 'won' | 'lost' | 'fled'
+    this.goldEarned   = 0;
+    this.xpEarned     = 0;
+    this.subScreen    = null; // null | 'items' | 'switch'
+
+    this.impetus      = 0;
+    this.maxImpetus   = 5;
+    this.statuses     = { player: {}, monster: {} };
+    this.stanceActive = false;
+    this.veilActive   = false;
+    this.voluntasUsed = false;
+    this.deathShield  = false;
   }
 
-  // --- Player actions ---
+  // ── Resource helpers ─────────────────────────────────────────────────────
 
-  attack() {
-    if (!this.isPlayerTurn()) return;
-    const variance = 0.9 + Math.random() * 0.2;
-    const raw = Math.floor(this.character.attack * variance);
-    const dmg = this.monster.takeDamage(raw);
-    this.addLog(`You attack ${this.monster.name} for ${dmg} damage.`, 'player');
-    this.subScreen = null;
-    this.afterPlayerAction();
+  gainImpetus(n) {
+    const prev = this.impetus;
+    this.impetus = Math.min(this.maxImpetus, this.impetus + n);
+    return this.impetus - prev;
   }
 
-  useSkill(skill) {
+  spendImpetus(n) {
+    this.impetus = Math.max(0, this.impetus - n);
+  }
+
+  canUseSkill(skill) {
+    if (skill.passive) return false;
+    return this.impetus >= skill.impetusRequires;
+  }
+
+  // ── Status helpers ────────────────────────────────────────────────────────
+
+  applyMonsterStatus(name, data) {
+    this.statuses.monster[name] = { ...data };
+  }
+
+  applyPlayerStatus(name, data) {
+    this.statuses.player[name] = { ...data };
+  }
+
+  hasMonsterStatus(name) { return !!this.statuses.monster[name]; }
+
+  activeMonsterStatusCount() {
+    return Object.keys(this.statuses.monster).length;
+  }
+
+  playerDamageMult() {
+    return this.statuses.player.fury ? 1.4 : 1.0;
+  }
+
+  monsterDamageMult() {
+    return this.statuses.monster.vulnerable ? 1.3 : 1.0;
+  }
+
+  // ── Tick status effects ───────────────────────────────────────────────────
+
+  tickPlayerStatuses() {
+    const fury = this.statuses.player.fury;
+    if (fury) {
+      fury.turnsLeft--;
+      if (fury.turnsLeft <= 0) {
+        delete this.statuses.player.fury;
+        this.addLog('Fury fades.', 'info');
+      }
+    }
+  }
+
+  tickMonsterStatuses() {
+    const ignited = this.statuses.monster.ignited;
+    if (ignited) {
+      const burnDmg = ignited.burnDamage;
+      this.monster.hp = Math.max(0, this.monster.hp - burnDmg);
+      this.addLog(`${this.monster.name} burns for ${burnDmg} fire damage.`, 'player-skill');
+      ignited.turnsLeft--;
+      if (ignited.turnsLeft <= 0) delete this.statuses.monster.ignited;
+    }
+
+    const vuln = this.statuses.monster.vulnerable;
+    if (vuln) {
+      vuln.turnsLeft--;
+      if (vuln.turnsLeft <= 0) {
+        delete this.statuses.monster.vulnerable;
+        this.addLog('Vulnerable fades.', 'info');
+      }
+    }
+  }
+
+  // ── Damage helper ─────────────────────────────────────────────────────────
+
+  _dealDamageToMonster(rawPower, element, physical) {
+    const fury    = this.playerDamageMult();
+    const vuln    = this.monsterDamageMult();
+    const elemMult = getMultiplier(element, this.monster.element);
+    const raw  = Math.floor(this.character.attack * rawPower * fury * vuln * elemMult);
+    const dmg  = this.monster.takeDamage(raw);
+    if (physical && this.hasMonsterStatus('frozen')) {
+      delete this.statuses.monster.frozen;
+      this.addLog('Physical strike shatters the ice — Frozen broken!', 'info');
+    }
+    return { dmg, elemMult };
+  }
+
+  // ── Player skill actions ──────────────────────────────────────────────────
+
+  executeSkill(skill) {
     if (!this.isPlayerTurn()) return;
-    if (!this.character.canUseSkill(skill)) {
-      this.addLog('Not enough MP.', 'warning');
+    if (!this.canUseSkill(skill)) {
+      this.addLog('Cannot use that skill right now.', 'warning');
       return;
     }
-    this.character.spendMp(skill.mpCost);
-    const mult = getMultiplier(skill.element, this.monster.element);
-    const raw  = Math.floor(this.character.attack * skill.power * mult);
-    const dmg  = this.monster.takeDamage(raw);
-    const note = effectivenessText(mult);
-    this.addLog(`${skill.name} → ${dmg} damage${note ? ' — ' + note : ''}.`, 'player-skill');
+    this.tickPlayerStatuses();
+    if (skill.impetusRequires > 0) this.spendImpetus(skill.impetusRequires);
+
+    switch (skill.id) {
+      case 'warrior_shatter': this._doShatteringStrike(); break;
+      case 'warrior_stance':  this._doIronStance();       break;
+      case 'warrior_charge':  this._doCharge();           break;
+      case 'sc_ignition':     this._doIgnition();         break;
+      case 'sc_freeze':       this._doFreeze();           break;
+      case 'sc_discharge':    this._doDischarge();        break;
+      case 'sc_veil':         this._doArcaneVeil();       break;
+      default:
+        this.addLog(`Unknown skill: ${skill.name}`, 'warning');
+    }
+
     this.subScreen = null;
-    this.afterPlayerAction();
+    if (this.state === 'active') this._afterPlayerAct();
   }
+
+  _doShatteringStrike() {
+    const alreadyVulnerable = this.hasMonsterStatus('vulnerable');
+    const { dmg, elemMult } = this._dealDamageToMonster(1.2, ELEMENTS.NEUTRAL, true);
+    const note = effectivenessText(elemMult);
+    this.addLog(`Shattering Strike → ${dmg} damage${note ? ' — ' + note : ''}. Vulnerable applied.`, 'player-skill');
+    this.applyMonsterStatus('vulnerable', { turnsLeft: 2 });
+    if (alreadyVulnerable) {
+      const gained = this.gainImpetus(1);
+      if (gained > 0) this.addLog(`Enemy already Vulnerable — +${gained}⚡ Impetus (${this.impetus}/${this.maxImpetus}).`, 'passive');
+    }
+  }
+
+  _doIronStance() {
+    this.stanceActive = true;
+    const gained = this.gainImpetus(2);
+    this.addLog(`Iron Stance — bracing for impact. +${gained}⚡ Impetus (${this.impetus}/${this.maxImpetus}). Next hit: 50% dmg + Stun.`, 'player-skill');
+  }
+
+  _doCharge() {
+    const { dmg, elemMult } = this._dealDamageToMonster(1.5, ELEMENTS.NEUTRAL, true);
+    const note = effectivenessText(elemMult);
+    this.addLog(`Charge → ${dmg} damage${note ? ' — ' + note : ''}. Destabilized!`, 'player-skill');
+    this.applyMonsterStatus('destabilized', { turnsLeft: 1 });
+  }
+
+  _doIgnition() {
+    const { dmg, elemMult } = this._dealDamageToMonster(0.7, ELEMENTS.FIRE, false);
+    const note = effectivenessText(elemMult);
+    const burnDmg = Math.max(1, Math.floor(this.character.attack * 0.4));
+    this.applyMonsterStatus('ignited', { turnsLeft: 3, burnDamage: burnDmg });
+    this.addLog(`Ignition → ${dmg} fire damage${note ? ' — ' + note : ''}. Burns ${burnDmg}/turn for 3 turns.`, 'player-skill');
+  }
+
+  _doFreeze() {
+    const { dmg, elemMult } = this._dealDamageToMonster(1.0, ELEMENTS.WATER, false);
+    const note = effectivenessText(elemMult);
+    this.applyMonsterStatus('frozen', { actionsLeft: 2 });
+    this.addLog(`Freeze → ${dmg} water damage${note ? ' — ' + note : ''}. Frozen for 2 actions!`, 'player-skill');
+  }
+
+  _doDischarge() {
+    const statusCount = this.activeMonsterStatusCount();
+    const power = 1.5 + 0.5 * statusCount;
+    const { dmg, elemMult } = this._dealDamageToMonster(power, ELEMENTS.NEUTRAL, false);
+    const note = effectivenessText(elemMult);
+    this.addLog(`Discharge → ${dmg} damage (${power.toFixed(1)}× · ${statusCount} status${statusCount !== 1 ? 'es' : ''})${note ? ' — ' + note : ''}.`, 'player-skill');
+  }
+
+  _doArcaneVeil() {
+    this.veilActive = true;
+    this.addLog('Arcane Veil raised — next monster hit absorbed (+2⚡).', 'player-skill');
+  }
+
+  // ── Other player actions ──────────────────────────────────────────────────
 
   useItem(itemId) {
     if (!this.isPlayerTurn()) return;
+    this.tickPlayerStatuses();
     const item = this.character.consumeItem(itemId);
     if (!item) { this.addLog('Cannot use that item.', 'warning'); return; }
     if (item.healHp) {
       this.character.heal(item.healHp);
-      this.addLog(`You use ${item.name} and restore ${item.healHp} HP.`, 'heal');
+      this.addLog(`${item.name} — restored ${item.healHp} HP.`, 'heal');
     }
-    if (item.healMp) {
-      this.character.restoreMp(item.healMp);
-      this.addLog(`You use ${item.name} and restore ${item.healMp} MP.`, 'heal');
+    if (item.healImpetus) {
+      const gained = this.gainImpetus(item.healImpetus);
+      this.addLog(`${item.name} — +${gained}⚡ Impetus (${this.impetus}/${this.maxImpetus}).`, 'heal');
     }
     this.subScreen = null;
-    this.afterPlayerAction();
+    this._afterPlayerAct();
   }
 
   flee() {
@@ -66,32 +219,133 @@ export class Combat {
     }
   }
 
-  // --- Internal ---
-
-  afterPlayerAction() {
-    if (this.monster.isAlive()) {
-      this.monsterTurn();
-    } else {
-      this.goldEarned = this.monster.goldDrop();
-      this.state = 'won';
-      this.addLog(`You defeated ${this.monster.name}! +${this.goldEarned} gold.`, 'victory');
+  switchClass(cls) {
+    if (this.impetus < 2) {
+      this.addLog('Not enough Impetus to switch class (need 2⚡).', 'warning');
+      return false;
     }
+    this.spendImpetus(2);
+    const currentHp = this.character.hp;
+    this.character.setClass(cls);
+    this.character.hp = currentHp;
+    this.stanceActive = false;
+    this.veilActive   = false;
+    this.subScreen    = null;
+    this.addLog(`Switched to ${cls.icon} ${cls.name}! (${this.impetus}/${this.maxImpetus}⚡ remaining)`, 'passive');
+    return true;
   }
+
+  // ── After player acts ─────────────────────────────────────────────────────
+
+  _afterPlayerAct() {
+    if (!this.monster.isAlive()) {
+      this.goldEarned = this.monster.goldDrop();
+      this.xpEarned   = this.monster.xpReward;
+      this.state      = 'won';
+      this.addLog(`You defeated ${this.monster.name}! +${this.goldEarned}⚜`, 'victory');
+      return;
+    }
+    this.monsterTurn();
+  }
+
+  // ── Monster turn ──────────────────────────────────────────────────────────
 
   monsterTurn() {
     if (this.state !== 'active') return;
+
+    this.tickMonsterStatuses();
+
+    if (!this.monster.isAlive()) {
+      this.goldEarned = this.monster.goldDrop();
+      this.xpEarned   = this.monster.xpReward;
+      this.state      = 'won';
+      this.addLog(`${this.monster.name} succumbs to the flames! +${this.goldEarned}⚜`, 'victory');
+      return;
+    }
+
+    // Stunned
+    if (this.statuses.monster.stunned) {
+      const st = this.statuses.monster.stunned;
+      st.turnsLeft--;
+      if (st.turnsLeft <= 0) delete this.statuses.monster.stunned;
+      this.addLog(`${this.monster.name} is stunned and cannot act.`, 'info');
+      return;
+    }
+
+    // Destabilized: skip action
+    if (this.statuses.monster.destabilized) {
+      const dest = this.statuses.monster.destabilized;
+      dest.turnsLeft--;
+      if (dest.turnsLeft <= 0) delete this.statuses.monster.destabilized;
+      this.addLog(`${this.monster.name} is destabilized and cannot act.`, 'info');
+      return;
+    }
+
+    // Frozen: skip action
+    if (this.statuses.monster.frozen) {
+      const fr = this.statuses.monster.frozen;
+      fr.actionsLeft--;
+      if (fr.actionsLeft <= 0) delete this.statuses.monster.frozen;
+      this.addLog(`${this.monster.name} is frozen and cannot act.`, 'info');
+      return;
+    }
+
+    // Monster chooses and executes attack
     const action = this.monster.chooseAction();
+    let raw;
+    let buildLog;
 
     if (action.type === 'skill') {
-      const skill = action.skill;
-      const mult  = getMultiplier(skill.element, this.character.element);
-      const raw   = Math.floor(this.monster.attack * skill.power * mult);
-      const dmg   = this.character.takeDamage(raw);
-      const note  = effectivenessText(mult);
-      this.addLog(`${this.monster.name} uses ${skill.name} → ${dmg} damage${note ? ' — ' + note : ''}.`, 'monster');
+      const { skill } = action;
+      const mult = getMultiplier(skill.element, this.character.element);
+      raw = Math.floor(this.monster.attack * skill.power * mult);
+      const note = effectivenessText(mult);
+      buildLog = dmg => `${this.monster.name} uses ${skill.name} → ${dmg} damage${note ? ' — ' + note : ''}.`;
     } else {
-      const dmg = this.character.takeDamage(this.monster.attack);
-      this.addLog(`${this.monster.name} attacks you for ${dmg} damage.`, 'monster');
+      const mult = getMultiplier(this.monster.element, this.character.element);
+      raw = mult !== 1.0 ? Math.floor(this.monster.attack * mult) : this.monster.attack;
+      buildLog = dmg => `${this.monster.name} attacks for ${dmg} damage.`;
+    }
+
+    // Veil: absorb the hit entirely
+    if (this.veilActive) {
+      this.veilActive = false;
+      const gained = this.gainImpetus(2);
+      this.addLog(`${buildLog(0).replace(/\d+ damage/, '— Arcane Veil absorbs the blow!')} +${gained}⚡`, 'passive');
+      return;
+    }
+
+    // Stance: halve damage, stun monster, clear stance
+    const wasStance = this.stanceActive;
+    if (wasStance) {
+      raw = Math.floor(raw * 0.5);
+      this.stanceActive = false;
+      this.applyMonsterStatus('stunned', { turnsLeft: 1 });
+    }
+
+    const prevHp = this.character.hp;
+    const dmg    = this.character.takeDamage(raw);
+    this.addLog(buildLog(dmg), 'monster');
+
+    if (wasStance) {
+      this.addLog('Iron Stance absorbs half the blow! Monster is stunned.', 'passive');
+    }
+
+    // Unbreakable Will: trigger when HP first crosses below 30%
+    const threshold = Math.floor(this.character.maxHp * 0.3);
+    if (!this.voluntasUsed && prevHp > threshold && this.character.hp <= threshold && this.character.hp > 0) {
+      this.voluntasUsed = true;
+      this.deathShield  = true;
+      const gained = this.gainImpetus(3);
+      this.applyPlayerStatus('fury', { turnsLeft: 3 });
+      this.addLog(`⚡ Unbreakable Will! +${gained}⚡ Impetus. Fury active. Death shield engaged.`, 'passive');
+    }
+
+    // Death shield: negate killing blow
+    if (!this.character.isAlive() && this.deathShield) {
+      this.character.hp = 1;
+      this.deathShield  = false;
+      this.addLog('The death shield holds! You survive with 1 HP.', 'passive');
     }
 
     if (!this.character.isAlive()) {
@@ -104,6 +358,6 @@ export class Combat {
 
   addLog(message, type = 'info') {
     this.log.push({ message, type });
-    if (this.log.length > 12) this.log.shift();
+    if (this.log.length > 16) this.log.shift();
   }
 }

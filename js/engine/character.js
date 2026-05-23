@@ -2,44 +2,61 @@ import { ELEMENTS } from '../data/elements.js';
 
 export class Character {
   constructor() {
-    this.name = 'Hero';
+    this._class = null;
+    this.name   = 'Hero';
     this.element = ELEMENTS.NEUTRAL;
 
-    this.maxHp = 100;
-    this.hp = 100;
-    this.maxMp = 60;
-    this.mp = 60;
-
-    this.baseAttack = 15;
+    this.maxHp       = 100;
+    this.hp          = 100;
+    this.baseAttack  = 15;
     this.baseDefense = 3;
-    this.speed = 10;
+    this.speed       = 10;
 
-    this.weapon = { name: 'Iron Sword', attackBonus: 0, level: 0 };
-    this.armor  = { name: 'Leather Armor', defenseBonus: 0, level: 0 };
+    this.weapon = { name: 'Iron Sword',     attackBonus: 0,  level: 0 };
+    this.armor  = { name: 'Leather Armor',  defenseBonus: 0, level: 0 };
 
     this.items = [
       { id: 'potion', name: 'Potion', quantity: 3, healHp: 30 },
     ];
 
-    this.skills = [
-      { id: 'fire_strike',  name: 'Fire Strike',   element: ELEMENTS.FIRE,  mpCost: 12, power: 1.6 },
-      { id: 'water_bolt',   name: 'Water Bolt',    element: ELEMENTS.WATER, mpCost: 12, power: 1.6 },
-      { id: 'earth_crush',  name: 'Earth Crush',   element: ELEMENTS.EARTH, mpCost: 12, power: 1.6 },
-      { id: 'air_slash',    name: 'Air Slash',     element: ELEMENTS.AIR,   mpCost: 12, power: 1.6 },
-    ];
+    this.level = 1;
+    this.xp    = 0;
   }
 
-  get attack()  { return this.baseAttack  + (this.weapon?.attackBonus  ?? 0); }
-  get defense() { return this.baseDefense + (this.armor?.defenseBonus  ?? 0); }
+  get attack()        { return this.baseAttack  + (this.weapon?.attackBonus  ?? 0); }
+  get defense()       { return this.baseDefense + (this.armor?.defenseBonus  ?? 0); }
+  get skills()        { return this._class?.skills ?? []; }
+  get xpToNextLevel() { return this.level * 50; }
 
-  isAlive() { return this.hp > 0; }
+  addXp(amount) {
+    this.xp += amount;
+    let gained = 0;
+    while (this.xp >= this.xpToNextLevel) {
+      this.xp   -= this.xpToNextLevel;
+      this.level++;
+      this.maxHp      += 10;
+      this.hp         += 10;
+      this.baseAttack += 1;
+      gained++;
+    }
+    return gained;
+  }
+
+  setClass(cls) {
+    this._class      = cls;
+    this.maxHp       = cls.stats.maxHp;
+    this.hp          = cls.stats.maxHp;
+    this.baseAttack  = cls.stats.baseAttack;
+    this.baseDefense = cls.stats.baseDefense;
+    this.speed       = cls.stats.speed;
+    this.element     = ELEMENTS.NEUTRAL;
+  }
+
+  isAlive()   { return this.hp > 0; }
+  hpPercent() { return this.hp / this.maxHp; }
 
   heal(amount) {
     this.hp = Math.min(this.maxHp, this.hp + amount);
-  }
-
-  restoreMp(amount) {
-    this.mp = Math.min(this.maxMp, this.mp + amount);
   }
 
   takeDamage(rawAmount) {
@@ -48,12 +65,8 @@ export class Character {
     return dmg;
   }
 
-  canUseSkill(skill) {
-    return this.mp >= skill.mpCost;
-  }
-
-  spendMp(amount) {
-    this.mp = Math.max(0, this.mp - amount);
+  fullRestore() {
+    this.hp = this.maxHp;
   }
 
   getItem(itemId) {
@@ -76,12 +89,4 @@ export class Character {
       this.items.push({ ...itemData, quantity: 1 });
     }
   }
-
-  fullRestore() {
-    this.hp = this.maxHp;
-    this.mp = this.maxMp;
-  }
-
-  hpPercent()  { return this.hp  / this.maxHp; }
-  mpPercent()  { return this.mp  / this.maxMp; }
 }

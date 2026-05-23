@@ -1,25 +1,25 @@
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 :root {
-  --bg:       #1a1208;
-  --panel:    #2a1e0f;
-  --card:     #3a2a14;
-  --border:   #5a3f20;
-  --gold:     #d4a017;
-  --text:     #e8d5b7;
-  --muted:    #9a8060;
-  --fire:     #e85d04;
-  --water:    #0096c7;
-  --earth:    #588157;
-  --air:      #90e0ef;
-  --neutral:  #adb5bd;
-  --hp:       #c0392b;
-  --mp:       #2980b9;
-  --hp-bg:    #5a1010;
-  --mp-bg:    #102040;
-  --success:  #4a8c3f;
-  --danger:   #c0392b;
-  --warning:  #d4a017;
+  --bg:       #0c0a0b;
+  --panel:    #18100f;
+  --card:     #201418;
+  --border:   #4a2428;
+  --gold:     #c9a84c;
+  --text:     #d2c4a8;
+  --muted:    #7a6860;
+  --fire:     #c44018;
+  --water:    #186080;
+  --earth:    #486030;
+  --air:      #607898;
+  --neutral:  #686060;
+  --hp:       #8c1a1a;
+  --mp:       #2a3888;
+  --hp-bg:    #280808;
+  --mp-bg:    #0c0a22;
+  --success:  #386828;
+  --danger:   #8c1a1a;
+  --warning:  #c9a84c;
   --radius:   10px;
 }
 
@@ -73,6 +73,11 @@ html, body {
 .run-badge {
   font-size: 0.75rem;
   color: var(--muted);
+}
+
+.record-badge {
+  font-size: 0.75rem;
+  color: var(--warning);
 }
 
 /* ── Stat bars ── */
@@ -538,3 +543,401 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .notification.warn { background: var(--warning); color: #1a1208; }
 .notification.danger { background: var(--danger); }
+
+/* ── Class select ── */
+.class-card {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.class-card:active { transform: scale(0.98); }
+
+.class-card-selected { border-color: var(--gold); }
+
+.class-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.class-card-icon { font-size: 2rem; flex-shrink: 0; }
+
+.class-card-name {
+  font-size: 1rem;
+  color: var(--gold);
+  font-weight: bold;
+}
+
+.class-active-tag {
+  font-size: 0.7rem;
+  background: var(--gold);
+  color: #0c0a0b;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-weight: bold;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+.class-card-passive {
+  font-size: 0.75rem;
+  color: var(--warning);
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.class-card-desc {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.class-card-stats {
+  display: flex;
+  gap: 14px;
+  font-size: 0.8rem;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.class-card-skills {
+  font-size: 0.75rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+/* ── Character mini-stats (dungeon / combat) ── */
+.char-mini-stats {
+  display: flex;
+  gap: 14px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding-top: 2px;
+  flex-wrap: wrap;
+}
+.char-mini-xp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+.char-mini-xp .progress-track { flex: 1; min-width: 60px; }
+
+/* ── Between-floors character panel ── */
+.btf-gold-row {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.btf-gold-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.btf-gold-label { font-size: 0.75rem; color: var(--muted); }
+.btf-gold-value { font-size: 1.1rem; }
+
+.btf-char-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  width: 100%;
+  max-width: 320px;
+  margin-bottom: 12px;
+}
+.btf-char-header {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.btf-pts-badge {
+  font-size: 0.72rem;
+  background: var(--warning);
+  color: #000;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: bold;
+}
+.btf-stat-row {
+  display: flex;
+  gap: 12px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+
+/* ── Skill tree branch headers ── */
+.branch-section { margin-top: 18px; }
+
+.branch-header-block {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px 6px 0 0;
+  border-bottom: 2px solid var(--border);
+  padding: 10px 12px 10px;
+  margin-bottom: 0;
+}
+.branch-block-chosen {
+  border-color: var(--success);
+  border-bottom-color: var(--success);
+}
+.branch-block-locked {
+  border-color: var(--danger);
+  opacity: 0.65;
+}
+.branch-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.branch-title {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: var(--text);
+  letter-spacing: 0.5px;
+}
+.branch-lore {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.5;
+}
+.branch-status-tag {
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 7px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.branch-status-chosen { background: var(--success); color: #000; }
+.branch-status-locked { background: var(--danger); color: #fff; }
+
+/* ── Active combat buff indicator ── */
+.active-buff {
+  font-size: 0.75rem;
+  color: var(--success);
+  padding: 2px 0;
+  font-weight: bold;
+}
+
+/* ── Skill tree nodes ── */
+.skill-node {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.skill-node-unlocked { border-color: var(--gold); }
+.skill-node-available { border-color: var(--success); cursor: pointer; }
+.skill-node-available:active { transform: scale(0.98); background: var(--panel); }
+.skill-node-locked { opacity: 0.4; }
+.skill-node-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+.skill-node-effect { font-size: 0.78rem; color: var(--warning); }
+.skill-node-desc { font-size: 0.75rem; color: var(--muted); font-style: italic; }
+.skill-node-cost { font-size: 0.75rem; color: var(--success); font-weight: bold; }
+
+/* ── Combat damage previews ── */
+.dmg-preview   { font-size: 0.75rem; font-weight: bold; color: var(--muted); white-space: nowrap; }
+.dmg-super     { color: #f6ad55; }
+.dmg-resisted  { color: #718096; }
+.dmg-weak      { color: #718096; }
+.dmg-heal      { color: #68d391; }
+
+.action-btn-attack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  line-height: 1.2;
+}
+
+.monster-stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+/* ── Loadout screen ── */
+.loadout-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.loadout-card-active { border-color: var(--gold); }
+.loadout-card-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.loadout-card-icon { font-size: 1.8rem; flex-shrink: 0; }
+.loadout-card-name { font-weight: bold; font-size: 0.9rem; }
+.loadout-card-passive { font-size: 0.72rem; color: var(--muted); }
+.loadout-card-info { font-size: 0.72rem; color: var(--muted); }
+.loadout-tag { font-size: 0.72rem; background: var(--gold); color: #000; padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
+.loadout-add-btn, .loadout-remove-btn {
+  font-size: 0.8rem; padding: 6px 12px; border-radius: var(--radius);
+  border: 1px solid var(--border); cursor: pointer; white-space: nowrap;
+}
+.loadout-add-btn { background: var(--success); color: #000; border-color: var(--success); }
+.loadout-remove-btn { background: var(--panel); color: var(--text); }
+.loadout-add-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Combat: class switch subscreen ── */
+.switch-list { display: flex; flex-direction: column; gap: 8px; }
+.class-switch-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.class-switch-btn:disabled { opacity: 0.4; cursor: default; }
+.class-switch-active { border-color: var(--gold); }
+.csb-icon { font-size: 1.6rem; flex-shrink: 0; }
+.csb-info { flex: 1; min-width: 0; }
+.csb-name { font-weight: bold; font-size: 0.9rem; }
+.csb-passive { font-size: 0.72rem; color: var(--muted); }
+.csb-skills { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+.csb-tag { font-size: 0.68rem; background: var(--gold); color: #000; padding: 1px 5px; border-radius: 8px; }
+
+/* ── Combat: active class badge ── */
+.active-class-badge {
+  font-size: 0.78rem;
+  color: var(--gold);
+  font-weight: bold;
+  padding-top: 2px;
+}
+
+/* ── Combat: switch action button ── */
+.action-btn-switch { border-color: var(--success); }
+
+/* ── Impetus bar ── */
+.impetus-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+.impetus-pips { display: flex; gap: 4px; }
+.impetus-pip {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  background: transparent;
+}
+.impetus-pip-full { background: var(--gold); }
+.impetus-label { font-size: 0.72rem; color: var(--gold); font-weight: bold; }
+
+/* ── Status effect badges ── */
+.status-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.status-badge {
+  font-size: 0.68rem;
+  padding: 2px 7px;
+  border-radius: 8px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+.status-vulnerable   { background: #d69e2e; color: #000; }
+.status-stunned      { background: #ed8936; color: #000; }
+.status-destabilized { background: #e53e3e; color: #fff; }
+.status-ignited      { background: #c05621; color: #fff; }
+.status-frozen       { background: #3182ce; color: #fff; }
+.status-fury         { background: #c53030; color: #fff; }
+.status-stance       { background: #276749; color: #fff; }
+.status-veil         { background: #4a5568; color: #fff; }
+
+/* ── Combat skill grid ── */
+.skill-grid-combat {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.skill-btn-combat {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  transition: filter 0.15s, transform 0.1s;
+}
+.skill-btn-combat:active { transform: scale(0.97); filter: brightness(0.85); }
+.skill-btn-combat:disabled { opacity: 0.4; cursor: default; }
+.skill-btn-name    { font-weight: bold; font-size: 0.85rem; }
+.skill-btn-preview { font-size: 0.7rem; color: var(--muted); }
+.skill-btn-cost    { font-size: 0.7rem; color: var(--gold); font-weight: bold; }
+
+/* ── Passive skill badge (Unbreakable Will) ── */
+.skill-passive-badge {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+.voluntas-ready  { border-color: var(--success); }
+.voluntas-active { border-color: #e53e3e; }
+.voluntas-spent  { opacity: 0.4; }
+
+/* ── Combat bottom row (items / switch / flee) ── */
+.combat-bottom-row {
+  display: flex;
+  gap: 8px;
+}
+.combat-bottom-row .action-btn {
+  flex: 1;
+  padding: 13px 6px;
+  font-size: 0.85rem;
+}
+.action-btn-switch:disabled { opacity: 0.4; cursor: default; }
