@@ -220,9 +220,7 @@ export class Combat {
       return false;
     }
     this.spendImpetus(2);
-    const currentHp = this.character.hp;
-    this.character.setClass(cls);
-    this.character.hp = currentHp;
+    this.character.switchClassStats(cls);
     this.stanceActive = false;
     this.subScreen    = null;
     this.addLog(`Switched to ${cls.icon} ${cls.name}! (${this.impetus}/${this.maxImpetus}⚡ remaining)`, 'passive');

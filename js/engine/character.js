@@ -55,6 +55,14 @@ export class Character {
     this.element     = ELEMENTS.NEUTRAL;
   }
 
+  switchClassStats(cls) {
+    this._class      = cls;
+    this.baseAttack  = cls.stats.baseAttack;
+    this.baseDefense = cls.stats.baseDefense;
+    this.speed       = cls.stats.speed;
+    this.element     = ELEMENTS.NEUTRAL;
+  }
+
   isAlive()   { return this.hp > 0; }
   hpPercent() { return this.hp / this.maxHp; }
 
