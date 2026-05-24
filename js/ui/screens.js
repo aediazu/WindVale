@@ -703,25 +703,46 @@ export function renderLoadout(s) {
 export function renderClassSelect(s) {
   const currentId = s.character._class?.id ?? null;
 
+  function skillChip(sk) {
+    if (sk.passive)              return ['Auto',      'csc-passive'];
+    if (sk.manaCost > 0)         return [`${sk.manaCost}M`, 'csc-mana'];
+    if (sk.impetusRequires > 0)  return [`${sk.impetusRequires}⚡`, 'csc-impetus'];
+    return ['Free', 'csc-free'];
+  }
+
   const cards = CLASSES.map(cls => {
     const isSelected = cls.id === currentId;
-    const skillList = cls.skills.map(sk => sk.name).join(', ');
     const { maxHp, baseAttack, baseDefense } = cls.stats;
+    const tagline = cls.description.split('. ')[0] + '.';
+
+    const skillRows = cls.skills.map(sk => {
+      const [chipLabel, chipClass] = skillChip(sk);
+      const elemIcon = sk.element !== 'Neutral' ? (ELEMENT_ICON[sk.element] ?? '') : '';
+      return `
+        <div class="class-skill-row">
+          <div class="class-skill-header">
+            <span class="class-skill-chip ${chipClass}">${chipLabel}</span>
+            <span class="class-skill-name-text">${elemIcon ? elemIcon + ' ' : ''}${sk.name}</span>
+          </div>
+          <div class="class-skill-effect">${sk.preview}</div>
+        </div>`;
+    }).join('');
+
     return `
       <div class="class-card${isSelected ? ' class-card-selected' : ''}" onclick="game.selectClass('${cls.id}')">
         <div class="class-card-header">
           <span class="class-card-icon">${cls.icon}</span>
           <div>
             <div class="class-card-name">${cls.name}${isSelected ? ' <span class="class-active-tag">Active</span>' : ''}</div>
+            <div class="class-card-tagline">${tagline}</div>
           </div>
         </div>
-        <div class="class-card-desc">${cls.description}</div>
         <div class="class-card-stats">
           <span>❤ ${maxHp}</span>
           <span>⚔ ${baseAttack}</span>
           <span>🛡 ${baseDefense}</span>
         </div>
-        <div class="class-card-skills">Skills: ${skillList}</div>
+        <div class="class-skill-list">${skillRows}</div>
       </div>`;
   }).join('');
 
@@ -733,7 +754,7 @@ export function renderClassSelect(s) {
         <span class="gold-badge">⚜ ${s.gold}</span>
       </div>
       <div class="card">
-        <div class="card-body">Your class persists between runs. Switching resets HP to the new class values but keeps your gear and gold.</div>
+        <div class="card-body">Tu clase persiste entre expediciones. Cambiar de clase en combate mantiene tu HP, equipamiento y oro.</div>
       </div>
       ${cards}
     </div>`;

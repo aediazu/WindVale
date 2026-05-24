@@ -17,7 +17,7 @@ export const CLASSES = [
         passive: false,
         impetusRequires: 0,
         description: 'A quick, reckless strike that leaves the enemy exposed. Deals 0.5× ATK and applies Vulnerable — they take 30% more damage for 1 round. Weak on its own, but sets up your Sorcerer for a devastating follow-up.',
-        preview: '0.5× DMG + Vulnerable (1 round)',
+        preview: '0.5× ATK · Vulnerable 1t',
       },
       {
         id: 'warrior_brace',
@@ -27,7 +27,7 @@ export const CLASSES = [
         passive: false,
         impetusRequires: 0,
         description: 'Plant your feet and generate momentum. Gain 2 Impetus immediately and brace for the next hit — it deals 50% less damage. A safe way to build resources while waiting for the right moment to switch.',
-        preview: '+2⚡ · Block 50% next hit',
+        preview: '+2⚡ · next hit −50%',
       },
       {
         id: 'warrior_slam',
@@ -37,7 +37,7 @@ export const CLASSES = [
         passive: false,
         impetusRequires: 2,
         description: 'A crushing blow that stuns the enemy for 1 turn — they cannot act. Costs 2 Impetus but grants complete turn control. Use when your Sorcerer needs a safe window to act, or to buy time for a switch.',
-        preview: 'Stun 1t [2⚡] — no damage',
+        preview: 'Stun 1t · no damage',
       },
       {
         id: 'warrior_will',
@@ -47,7 +47,7 @@ export const CLASSES = [
         passive: true,
         impetusRequires: 0,
         description: 'When your HP first drops below 30%, this triggers automatically: gain 3 Impetus, activate Fury (+40% damage for 3 turns), and a death shield negates the next killing blow, leaving you at 1 HP. Once per combat.',
-        preview: 'AUTO at <30% HP → 3⚡ + Fury + death shield',
+        preview: '< 30% HP → 3⚡ · Fury · death shield',
       },
     ],
   },
@@ -69,7 +69,7 @@ export const CLASSES = [
         impetusRequires: 0,
         manaCost: 2,
         description: 'Conjure a burst of fire and leave the target burning. Deals fire damage and applies Ignited — the enemy burns at the start of each monster turn for 3 turns. More statuses on the enemy increase Discharge damage.',
-        preview: '0.8× Fire DMG + Ignited 3t [2 Mana]',
+        preview: '0.8× Fire · Ignited 3t',
       },
       {
         id: 'sc_discharge',
@@ -80,7 +80,7 @@ export const CLASSES = [
         impetusRequires: 0,
         manaCost: 3,
         description: 'Unleash a devastating surge of arcane force. Starts at 2.0× ATK and gains +0.5× per active status on the enemy. With Vulnerable + Ignited + Frozen active, this hits for 3.5× ATK. The Sorcerer\'s signature payoff.',
-        preview: '2.0×+ DMG scales with statuses [3 Mana]',
+        preview: '2.0× · +0.5× por estado activo',
       },
       {
         id: 'sc_frost',
@@ -91,7 +91,7 @@ export const CLASSES = [
         impetusRequires: 0,
         manaCost: 3,
         description: 'Encases the enemy in ice. Deals water damage and Freezes them for 2 turns — they cannot act. Freeze breaks early if the enemy takes physical damage. Pairs well with Vulnerable from the Warrior.',
-        preview: '1.0× Water DMG + Frozen 2t [3 Mana]',
+        preview: '1.0× Water · Frozen 2t',
       },
       {
         id: 'sc_surge',
@@ -102,7 +102,7 @@ export const CLASSES = [
         impetusRequires: 0,
         manaCost: 0,
         description: 'Channel raw arcane energy into momentum. Generates 3 Impetus with no Mana cost. Use this when your Mana is spent and you need to afford switching back to Warrior.',
-        preview: '+3⚡ — free',
+        preview: '+3⚡',
       },
     ],
   },
