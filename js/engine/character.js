@@ -19,8 +19,11 @@ export class Character {
       { id: 'potion', name: 'Potion', quantity: 3, healHp: 30 },
     ];
 
-    this.level = 1;
-    this.xp    = 0;
+    this.level   = 1;
+    this.xp      = 0;
+
+    this.maxMana = 15;
+    this.mana    = 15;
   }
 
   get attack()        { return this.baseAttack  + (this.weapon?.attackBonus  ?? 0); }
@@ -66,7 +69,12 @@ export class Character {
   }
 
   fullRestore() {
-    this.hp = this.maxHp;
+    this.hp   = this.maxHp;
+    this.mana = this.maxMana;
+  }
+
+  spendMana(n) {
+    this.mana = Math.max(0, this.mana - n);
   }
 
   getItem(itemId) {

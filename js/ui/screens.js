@@ -30,6 +30,16 @@ function impetusRow(current, max) {
     </div>`;
 }
 
+function manaBar(current, max) {
+  const pct = max > 0 ? Math.round((current / max) * 100) : 0;
+  return `
+    <div class="mana-row">
+      <span class="mana-label">🔮 Mana</span>
+      <div class="mana-bar-track"><div class="mana-bar-fill" style="width:${pct}%"></div></div>
+      <span class="mana-label">${current}/${max}</span>
+    </div>`;
+}
+
 function statusBadgesHtml(statuses, flags) {
   const badges = [];
   const ms = statuses?.monster ?? {};
@@ -42,7 +52,6 @@ function statusBadgesHtml(statuses, flags) {
 
   if (ps.fury)         badges.push(`<span class="status-badge status-fury">Fury (${ps.fury.turnsLeft}t)</span>`);
   if (flags?.stance)   badges.push(`<span class="status-badge status-stance">Brace</span>`);
-  if (flags?.veil)     badges.push(`<span class="status-badge status-veil">Arcane Veil</span>`);
 
   return badges.length ? `<div class="status-badges">${badges.join('')}</div>` : '';
 }
@@ -288,7 +297,7 @@ export function renderCombat(s) {
   // ── Player status badges
   const playerBadges = statusBadgesHtml(
     { player: combat.statuses?.player ?? {} },
-    { stance: combat.stanceActive, veil: combat.veilActive }
+    { stance: combat.stanceActive }
   );
 
   // ── Skill grid
@@ -314,9 +323,11 @@ export function renderCombat(s) {
           </div>`;
       }
       const canUse = combat.canUseSkill(sk);
-      const costBadge = sk.impetusRequires > 0
-        ? `<span class="skill-btn-cost">${sk.impetusRequires}⚡</span>`
-        : '';
+      const costBadge = sk.manaCost > 0
+        ? `<span class="skill-btn-cost skill-btn-cost-mana">${sk.manaCost}M</span>`
+        : sk.impetusRequires > 0
+          ? `<span class="skill-btn-cost">${sk.impetusRequires}⚡</span>`
+          : '';
       const elemIcon = ELEMENT_ICON[sk.element] ?? '';
       return `
         <button class="skill-btn-combat" onclick="game.combatUseSkill('${sk.id}')"
@@ -435,6 +446,7 @@ export function renderCombat(s) {
       <div class="stat-section">
         ${hpBar(c.hp, c.maxHp)}
         ${impetusRow(combat.impetus, combat.maxImpetus)}
+        ${c._class?.id === 'sorcerer' ? manaBar(c.mana, c.maxMana) : ''}
         ${playerBadges}
         ${charMiniStats(c)}
         ${c._class ? `<div class="active-class-badge">${c._class.icon} ${c._class.name}</div>` : ''}
@@ -474,7 +486,7 @@ export function renderShop(s) {
 export function renderInn(s) {
   const c = s.character;
   const cost = Math.floor(c.maxHp * 0.5);
-  const full = c.hp === c.maxHp;
+  const full = c.hp === c.maxHp && c.mana === c.maxMana;
 
   return `
     <div class="screen">
@@ -489,12 +501,13 @@ export function renderInn(s) {
       </div>
       <div class="stat-section">
         ${hpBar(c.hp, c.maxHp)}
+        ${manaBar(c.mana, c.maxMana)}
       </div>
       ${full
-        ? `<div class="notification">Already at full HP.</div>`
+        ? `<div class="notification">Already fully restored.</div>`
         : `<button class="btn-primary" onclick="game.restAtInn()"
             ${s.gold < cost ? 'disabled' : ''}>
-            Rest — ${cost}⚜ (Restore all HP)
+            Rest — ${cost}⚜ (Restore HP + Mana)
           </button>
           ${s.gold < cost ? '<div class="notification warn">Not enough gold.</div>' : ''}`}
     </div>`;

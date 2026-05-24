@@ -865,6 +865,30 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .impetus-pip-full { background: var(--gold); }
 .impetus-label { font-size: 0.72rem; color: var(--gold); font-weight: bold; }
 
+/* ── Mana bar ── */
+.mana-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+.mana-label { font-size: 0.72rem; color: #76e4f7; font-weight: bold; }
+.mana-bar-track {
+  flex: 1;
+  height: 8px;
+  background: rgba(118,228,247,0.15);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(118,228,247,0.4);
+}
+.mana-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2b6cb0, #76e4f7);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+.skill-btn-cost-mana { background: rgba(118,228,247,0.25); color: #76e4f7; border-color: rgba(118,228,247,0.4); }
+
 /* ── Status effect badges ── */
 .status-badges {
   display: flex;
@@ -885,7 +909,6 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .status-frozen       { background: #3182ce; color: #fff; }
 .status-fury         { background: #c53030; color: #fff; }
 .status-stance       { background: #276749; color: #fff; }
-.status-veil         { background: #4a5568; color: #fff; }
 
 /* ── Combat skill grid ── */
 .skill-grid-combat {

@@ -14,7 +14,6 @@ export class Combat {
     this.maxImpetus   = 5;
     this.statuses     = { player: {}, monster: {} };
     this.stanceActive = false;
-    this.veilActive   = false;
     this.voluntasUsed = false;
     this.deathShield  = false;
   }
@@ -33,6 +32,7 @@ export class Combat {
 
   canUseSkill(skill) {
     if (skill.passive) return false;
+    if (skill.manaCost > 0 && this.character.mana < skill.manaCost) return false;
     return this.impetus >= skill.impetusRequires;
   }
 
@@ -119,15 +119,16 @@ export class Combat {
     }
     this.tickPlayerStatuses();
     if (skill.impetusRequires > 0) this.spendImpetus(skill.impetusRequires);
+    if (skill.manaCost > 0) this.character.spendMana(skill.manaCost);
 
     switch (skill.id) {
-      case 'warrior_sunder': this._doSunder();    break;
-      case 'warrior_brace':  this._doBrace();     break;
-      case 'warrior_slam':   this._doSlam();      break;
-      case 'sc_ignition':    this._doIgnition();  break;
-      case 'sc_frost':       this._doFrostNova(); break;
-      case 'sc_discharge':   this._doDischarge(); break;
-      case 'sc_veil':        this._doArcaneVeil(); break;
+      case 'warrior_sunder': this._doSunder();      break;
+      case 'warrior_brace':  this._doBrace();       break;
+      case 'warrior_slam':   this._doSlam();        break;
+      case 'sc_ignition':    this._doIgnition();    break;
+      case 'sc_frost':       this._doFrostNova();   break;
+      case 'sc_discharge':   this._doDischarge();   break;
+      case 'sc_surge':       this._doArcaneSurge(); break;
       default:
         this.addLog(`Unknown skill: ${skill.name}`, 'warning');
     }
@@ -177,9 +178,9 @@ export class Combat {
     this.addLog(`Discharge → ${dmg} damage (${power.toFixed(1)}× · ${statusCount} status${statusCount !== 1 ? 'es' : ''})${note ? ' — ' + note : ''}.`, 'player-skill');
   }
 
-  _doArcaneVeil() {
-    this.veilActive = true;
-    this.addLog('Arcane Veil raised — next monster hit absorbed (+2⚡).', 'player-skill');
+  _doArcaneSurge() {
+    const gained = this.gainImpetus(3);
+    this.addLog(`Arcane Surge! +${gained}⚡ (${this.impetus}/${this.maxImpetus}).`, 'player-skill');
   }
 
   // ── Other player actions ──────────────────────────────────────────────────
@@ -223,7 +224,6 @@ export class Combat {
     this.character.setClass(cls);
     this.character.hp = currentHp;
     this.stanceActive = false;
-    this.veilActive   = false;
     this.subScreen    = null;
     this.addLog(`Switched to ${cls.icon} ${cls.name}! (${this.impetus}/${this.maxImpetus}⚡ remaining)`, 'passive');
     return true;
@@ -290,14 +290,6 @@ export class Combat {
       const mult = getMultiplier(this.monster.element, this.character.element);
       raw = Math.floor(this.monster.attack * mult);
       buildLog = dmg => `${this.monster.name} attacks for ${dmg} damage.`;
-    }
-
-    // Veil: absorb the hit entirely
-    if (this.veilActive) {
-      this.veilActive = false;
-      const gained = this.gainImpetus(2);
-      this.addLog(`${buildLog(0).replace(/\d+ damage/, '— Arcane Veil absorbs the blow!')} +${gained}⚡`, 'passive');
-      return;
     }
 
     // Brace: halve damage, clear stance
