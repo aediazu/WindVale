@@ -362,7 +362,6 @@ export function renderCombat(s) {
         <button class="btn-back" onclick="game.combatSubScreen(null)">← Back</button>`;
     }
   } else if (combat.subScreen === 'switch') {
-    const canSwitch = combat.impetus >= 2;
     const loadoutClasses = s._loadout
       .map(id => CLASSES.find(cl => cl.id === id))
       .filter(Boolean);
@@ -394,7 +393,7 @@ export function renderCombat(s) {
         const isActive = cls.id === c._class?.id;
         return `
           <button class="class-switch-btn ${isActive ? 'class-switch-active' : ''}"
-            ${isActive || !canSwitch ? 'disabled' : `onclick="game.combatSwitchClass('${cls.id}')"`}>
+            ${isActive ? 'disabled' : `onclick="game.combatSwitchClass('${cls.id}')"`}>
             <span class="csb-icon">${cls.icon}</span>
             <div class="csb-info">
               <div class="csb-name">${cls.name}${isActive ? ' <span class="csb-tag">Active</span>' : ''}</div>
@@ -406,22 +405,18 @@ export function renderCombat(s) {
           </button>`;
       }).join('');
       actionArea = `
-        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:6px">
-          Switch class — costs 2⚡
-          ${!canSwitch ? '<span style="color:var(--warning)"> · need more Impetus</span>' : ''}
-        </div>
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:6px">Switch class</div>
         <div class="switch-list">${switchBtns}</div>
         <button class="btn-back" onclick="game.combatSubScreen(null)">← Back</button>`;
     }
   } else {
     const hasAlt = s._loadout.length > 1;
-    const switchDisabled = !hasAlt || combat.impetus < 2;
     actionArea = `
       <div class="skill-grid-combat">${skillGridHtml()}</div>
       <div class="combat-bottom-row">
         <button class="action-btn" onclick="game.combatSubScreen('items')">🎒 Items</button>
         <button class="action-btn action-btn-switch" onclick="game.combatSubScreen('switch')"
-          ${switchDisabled && hasAlt ? 'disabled' : ''}>🔀 Switch${hasAlt ? ' [2⚡]' : ''}</button>
+          ${!hasAlt ? 'disabled' : ''}>🔀 Switch</button>
         <button class="action-btn" onclick="game.combatFlee()">🏃 Flee</button>
       </div>`;
   }
@@ -694,7 +689,7 @@ export function renderLoadout(s) {
       </div>
       <div class="card">
         <div class="card-body">
-          Choose up to 3 classes for combat. Switch during battle for 2⚡ — stats and skills swap instantly. Impetus and buffs carry over.
+          Choose up to 3 classes for combat. Switch freely during battle — stats and skills swap instantly. Impetus and buffs carry over.
           <br><strong style="color:var(--warning)">${totalActive}/3 active.</strong>
         </div>
       </div>

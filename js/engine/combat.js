@@ -215,11 +215,6 @@ export class Combat {
   }
 
   switchClass(cls) {
-    if (this.impetus < 2) {
-      this.addLog('Not enough Impetus to switch class (need 2⚡).', 'warning');
-      return false;
-    }
-    this.spendImpetus(2);
     this.character.switchClassStats(cls);
     this.stanceActive = false;
     this.subScreen    = null;
