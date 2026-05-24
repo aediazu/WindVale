@@ -328,13 +328,15 @@ export function renderCombat(s) {
         : sk.impetusRequires > 0
           ? `<span class="skill-btn-cost">${sk.impetusRequires}⚡</span>`
           : '';
-      const elemIcon = ELEMENT_ICON[sk.element] ?? '';
+      const elemIcon = sk.element !== 'Neutral' ? (ELEMENT_ICON[sk.element] ?? '') : '';
       return `
         <button class="skill-btn-combat" onclick="game.combatUseSkill('${sk.id}')"
           ${!canUse ? 'disabled' : ''}>
-          <div class="skill-btn-name">${elemIcon} ${sk.name}</div>
+          <div class="skill-btn-top">
+            <span class="skill-btn-name">${elemIcon ? elemIcon + ' ' : ''}${sk.name}</span>
+            ${costBadge}
+          </div>
           <div class="skill-btn-preview">${sk.preview}</div>
-          ${costBadge}
         </button>`;
     }).join('');
   }
@@ -704,10 +706,10 @@ export function renderClassSelect(s) {
   const currentId = s.character._class?.id ?? null;
 
   function skillChip(sk) {
-    if (sk.passive)              return ['Auto',      'csc-passive'];
+    if (sk.passive)              return ['Auto', 'csc-passive'];
     if (sk.manaCost > 0)         return [`${sk.manaCost}M`, 'csc-mana'];
     if (sk.impetusRequires > 0)  return [`${sk.impetusRequires}⚡`, 'csc-impetus'];
-    return ['Free', 'csc-free'];
+    return null;
   }
 
   const cards = CLASSES.map(cls => {
@@ -716,13 +718,13 @@ export function renderClassSelect(s) {
     const tagline = cls.description.split('. ')[0] + '.';
 
     const skillRows = cls.skills.map(sk => {
-      const [chipLabel, chipClass] = skillChip(sk);
+      const chip = skillChip(sk);
       const elemIcon = sk.element !== 'Neutral' ? (ELEMENT_ICON[sk.element] ?? '') : '';
       return `
         <div class="class-skill-row">
           <div class="class-skill-header">
-            <span class="class-skill-chip ${chipClass}">${chipLabel}</span>
             <span class="class-skill-name-text">${elemIcon ? elemIcon + ' ' : ''}${sk.name}</span>
+            ${chip ? `<span class="class-skill-chip ${chip[1]}">${chip[0]}</span>` : ''}
           </div>
           <div class="class-skill-effect">${sk.preview}</div>
         </div>`;
