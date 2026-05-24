@@ -8,9 +8,9 @@ export class Character {
 
     this.maxHp       = 100;
     this.hp          = 100;
-    this.baseAttack  = 15;
-    this.baseDefense = 3;
-    this.speed       = 10;
+    this.baseAttack  = 10;
+    this.baseDefense = 2;
+    this.baseSpeed   = 8;
 
     this.weapon = { name: 'Iron Sword',     attackBonus: 0,  level: 0 };
     this.armor  = { name: 'Leather Armor',  defenseBonus: 0, level: 0 };
@@ -26,8 +26,9 @@ export class Character {
     this.mana    = 15;
   }
 
-  get attack()        { return this.baseAttack  + (this.weapon?.attackBonus  ?? 0); }
-  get defense()       { return this.baseDefense + (this.armor?.defenseBonus  ?? 0); }
+  get attack()  { return this.baseAttack  + (this._class?.stats.attackBonus  ?? 0) + (this.weapon?.attackBonus  ?? 0); }
+  get defense() { return this.baseDefense + (this._class?.stats.defenseBonus ?? 0) + (this.armor?.defenseBonus  ?? 0); }
+  get speed()   { return this.baseSpeed   + (this._class?.stats.speedBonus   ?? 0); }
   get skills()        { return this._class?.skills ?? []; }
   get xpToNextLevel() { return this.level * 50; }
 
@@ -46,21 +47,8 @@ export class Character {
   }
 
   setClass(cls) {
-    this._class      = cls;
-    this.maxHp       = cls.stats.maxHp;
-    this.hp          = cls.stats.maxHp;
-    this.baseAttack  = cls.stats.baseAttack;
-    this.baseDefense = cls.stats.baseDefense;
-    this.speed       = cls.stats.speed;
-    this.element     = ELEMENTS.NEUTRAL;
-  }
-
-  switchClassStats(cls) {
-    this._class      = cls;
-    this.baseAttack  = cls.stats.baseAttack;
-    this.baseDefense = cls.stats.baseDefense;
-    this.speed       = cls.stats.speed;
-    this.element     = ELEMENTS.NEUTRAL;
+    this._class = cls;
+    this.element = ELEMENTS.NEUTRAL;
   }
 
   isAlive()   { return this.hp > 0; }

@@ -7,7 +7,7 @@ export const CLASSES = [
     name: 'Warrior',
     icon: '⚔',
     description: 'A battle-hardened fighter who generates Impetus through defense and sets up devastating combos. Switch to Sorcerer when fully charged.',
-    stats: { maxHp: 140, baseAttack: 18, baseDefense: 6, speed: 7 },
+    stats: { attackBonus: 8, defenseBonus: 4, speedBonus: -1 },
     skills: [
       {
         id: 'warrior_sunder',
@@ -58,7 +58,7 @@ export const CLASSES = [
     name: 'Sorcerer',
     icon: '🔮',
     description: 'A fragile but devastating spellcaster who spends Impetus accumulated by the Warrior. Piles status effects and detonates them with Discharge.',
-    stats: { maxHp: 70, baseAttack: 12, baseDefense: 1, speed: 12 },
+    stats: { attackBonus: 2, defenseBonus: -1, speedBonus: 4 },
     skills: [
       {
         id: 'sc_ignition',

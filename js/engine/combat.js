@@ -215,7 +215,7 @@ export class Combat {
   }
 
   switchClass(cls) {
-    this.character.switchClassStats(cls);
+    this.character.setClass(cls);
     this.stanceActive = false;
     this.subScreen    = null;
     this.addLog(`Switched to ${cls.icon} ${cls.name}! (${this.impetus}/${this.maxImpetus}⚡ remaining)`, 'passive');

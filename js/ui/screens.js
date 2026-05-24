@@ -399,7 +399,7 @@ export function renderCombat(s) {
               <div class="csb-name">${cls.name}${isActive ? ' <span class="csb-tag">Active</span>' : ''}</div>
               <div class="csb-passive">${cls.description.split('.')[0]}.</div>
               <div style="font-size:0.7rem;color:var(--muted);margin-top:2px">
-                ❤ ${cls.stats.maxHp} · ⚔ ${cls.stats.baseAttack} · 🛡 ${cls.stats.baseDefense}
+                ⚔ ${c.baseAttack + cls.stats.attackBonus} · 🛡 ${c.baseDefense + cls.stats.defenseBonus}
               </div>
             </div>
           </button>`;
@@ -709,7 +709,6 @@ export function renderClassSelect(s) {
 
   const cards = CLASSES.map(cls => {
     const isSelected = cls.id === currentId;
-    const { maxHp, baseAttack, baseDefense } = cls.stats;
     const tagline = cls.description.split('. ')[0] + '.';
 
     const skillRows = cls.skills.map(sk => {
@@ -735,9 +734,9 @@ export function renderClassSelect(s) {
           </div>
         </div>
         <div class="class-card-stats">
-          <span>❤ ${maxHp}</span>
-          <span>⚔ ${baseAttack}</span>
-          <span>🛡 ${baseDefense}</span>
+          <span>⚔ +${cls.stats.attackBonus}</span>
+          <span>🛡 ${cls.stats.defenseBonus >= 0 ? '+' : ''}${cls.stats.defenseBonus}</span>
+          <span>💨 ${cls.stats.speedBonus >= 0 ? '+' : ''}${cls.stats.speedBonus}</span>
         </div>
         <div class="class-skill-list">${skillRows}</div>
       </div>`;
